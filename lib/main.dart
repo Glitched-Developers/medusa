@@ -1,58 +1,81 @@
-// lib/main.dart
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
-import 'package:medusa/controllers/settings_controller.dart';
-import 'package:medusa/services/settings_service.dart';
-import 'package:medusa/themes/provider/theme_provider.dart';
 import 'package:provider/provider.dart';
-import 'utils/constants.dart';
 import 'controllers/schedule_controller.dart';
+import 'controllers/settings_controller.dart';
 import 'repositories/schedule_repository.dart';
 import 'services/bsu_api_service.dart';
+import 'services/schedule_cache_service.dart';
+import 'services/settings_service.dart';
+import 'themes/provider/theme_provider.dart';
+import 'utils/constants.dart';
 import 'view/screens/home_screen_view.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize services - IMPORTANT: we must initialize before providing
+  final settingsService = SettingsService();
+  final cacheService = ScheduleCacheService();
+
+  // Initialize in order
+  await settingsService.init();
+  await cacheService.init();
+
+  // Create API service
+  final apiService = BsuApiService(ApiConstants.apiServerUrl);
+
+  // Create repository with initialized services
+  final repository = ScheduleRepository(apiService, cacheService);
+
+  // Create controllers
+  final scheduleController = ScheduleController(repository);
+  final settingsController = SettingsController(settingsService);
+  final themeProvider = ThemeProvider(settingsService);
+
+  // Now run app with all services/controllers pre-initialized
+  runApp(MyApp(
+    settingsService: settingsService,
+    cacheService: cacheService,
+    apiService: apiService,
+    repository: repository,
+    scheduleController: scheduleController,
+    settingsController: settingsController,
+    themeProvider: themeProvider,
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final SettingsService settingsService;
+  final ScheduleCacheService cacheService;
+  final BsuApiService apiService;
+  final ScheduleRepository repository;
+  final ScheduleController scheduleController;
+  final SettingsController settingsController;
+  final ThemeProvider themeProvider;
+
+  const MyApp({
+    super.key,
+    required this.settingsService,
+    required this.cacheService,
+    required this.apiService,
+    required this.repository,
+    required this.scheduleController,
+    required this.settingsController,
+    required this.themeProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
-        ),
-
-        Provider(
-          create: (_) => SettingsService(),
-        ),
-
-        Provider(
-          create: (_) => BsuApiService(ApiConstants.apiServerUrl),
-          dispose: (_, service) => service.dispose(),
-        ),
-
-        ProxyProvider<BsuApiService, ScheduleRepository>(
-          update: (_, service, __) => ScheduleRepository(service),
-        ),
-
-        ChangeNotifierProxyProvider<ScheduleRepository, ScheduleController>(
-          create: (context) => ScheduleController(
-            Provider.of<ScheduleRepository>(context, listen: false),
-          ),
-          update: (_, repository, previous) =>
-          previous ?? ScheduleController(repository),
-        ),
-
-        ChangeNotifierProvider(
-          create: (context) => SettingsController(
-            Provider.of<SettingsService>(context, listen: false),
-          ),
-        ),
-
+        ChangeNotifierProvider.value(value: themeProvider),
+        Provider.value(value: settingsService),
+        Provider.value(value: apiService),
+        Provider.value(value: cacheService),
+        Provider.value(value: repository),
+        ChangeNotifierProvider.value(value: scheduleController),
+        ChangeNotifierProvider.value(value: settingsController),
       ],
 
       child: Consumer<ThemeProvider>(
@@ -61,8 +84,8 @@ class MyApp extends StatelessWidget {
             title: 'JellyFish',
             debugShowCheckedModeBanner: false,
             themeMode: themeProvider.themeMode,
-            theme: FlexThemeData.light(scheme: FlexScheme.shadGray),
-            darkTheme: FlexThemeData.dark(scheme: FlexScheme.shadGray),
+            theme: themeProvider.currentTheme,
+            darkTheme: themeProvider.currentTheme,
             supportedLocales: const [
               Locale('ru', 'RU'),  // Russian
               Locale('en', 'US'),  // English
@@ -74,4 +97,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

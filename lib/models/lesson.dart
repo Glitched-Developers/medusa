@@ -34,4 +34,19 @@ class Lesson {
       subgroup: json['subgroup'] as int?,
     );
   }
+
+  // Added toJson method
+  Map<String, dynamic> toJson() {
+    return {
+      'number': number,
+      'time': time,
+      'type': type,
+      'name': name,
+      'teacher': teacher,
+      'auditory': auditory,
+      'online': online,
+      'key': key,
+      if (subgroup != null) 'subgroup': subgroup,
+    };
+  }
 }

@@ -1,7 +1,8 @@
-import 'package:medusa/models/lesson.dart';
-import 'package:medusa/models/metadata.dart';
+import 'dart:convert';
 
-// lib/models/schedule_response.dart
+import 'lesson.dart';
+import 'metadata.dart';
+
 class ScheduleResponse {
   final Metadata metadata;
   final Map<String, List<Lesson>> schedule;
@@ -41,5 +42,32 @@ class ScheduleResponse {
       metadata: Metadata.fromJson(json['metadata'] ?? {'timestamp': ''}),
       schedule: scheduleMap,
     );
+  }
+
+  // Fixed: Return Map<String, dynamic> instead of String
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+    final Map<String, List<Map<String, dynamic>>> scheduleData = {};
+
+    schedule.forEach((day, lessons) {
+      scheduleData[day] = lessons.map((lesson) => {
+        'number': lesson.number,
+        'time': lesson.time,
+        'type': lesson.type,
+        'name': lesson.name,
+        'teacher': lesson.teacher,
+        'auditory': lesson.auditory,
+        'online': lesson.online,
+        'key': lesson.key,
+        if (lesson.subgroup != null) 'subgroup': lesson.subgroup,
+      }).toList();
+    });
+
+    data['metadata'] = {
+      'timestamp': metadata.timestamp,
+    };
+    data['schedule'] = scheduleData;
+
+    return data;
   }
 }

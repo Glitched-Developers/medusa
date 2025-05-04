@@ -1,29 +1,59 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'base_services/base_storage_service.dart';
+import 'package:flex_color_scheme/flex_color_scheme.dart';
 
-class SettingsService {
+class SettingsService extends BaseStorageService {
+  // Существующие ключи
   static const String _groupKey = 'selected_group';
 
-  // Сохранение выбранной группы (число)
+  // Новые ключи для настроек темы
+  static const String _isDarkModeKey = 'isDarkMode';
+  static const String _selectedFlexSchemeKey = 'selectedFlexScheme';
+
+  @override
+  Set<String> getAllowedKeys() {
+    return <String>{
+      _groupKey,
+      _isDarkModeKey,
+      _selectedFlexSchemeKey
+    };
+  }
+
+  // Существующие методы для работы с группой
   Future<void> saveSelectedGroup(int group) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_groupKey, group);
+    await setInt(_groupKey, group);
   }
 
-  // Получение выбранной группы
   Future<int?> getSelectedGroup() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_groupKey);
+    return await getInt(_groupKey);
   }
 
-  // Проверка, была ли выбрана группа
   Future<bool> hasSelectedGroup() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_groupKey);
+    return await containsKey(_groupKey);
   }
 
-  // Очистка сохраненной группы (если потребуется)
   Future<void> clearSelectedGroup() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_groupKey);
+    await remove(_groupKey);
+  }
+
+  // Новые методы для работы с настройками темы
+
+  // Сохранение состояния темного режима
+  Future<void> saveDarkModeState(bool isDarkMode) async {
+    await setBool(_isDarkModeKey, isDarkMode);
+  }
+
+  // Получение состояния темного режима
+  Future<bool> getDarkModeState() async {
+    return await getBool(_isDarkModeKey) ?? false;
+  }
+
+  // Сохранение выбранной темы
+  Future<void> saveSelectedTheme(String themeName) async {
+    await setString(_selectedFlexSchemeKey, themeName);
+  }
+
+  // Получение выбранной темы
+  Future<String> getSelectedTheme() async {
+    return await getString(_selectedFlexSchemeKey) ?? FlexScheme.material.name;
   }
 }

@@ -1,6 +1,6 @@
 // lib/controllers/schedule_controller.dart
 import 'package:flutter/material.dart';
-import 'package:medusa/models/lesson.dart';
+import '../models/lesson.dart';
 import '../models/schedule_response.dart';
 import '../repositories/interfaces/i_schedule_repository.dart';
 
@@ -24,12 +24,12 @@ class ScheduleController extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       _currentWeek = await _repository.getCurrentWeek();
       _scheduleResponse = await _repository.getSchedule(groupId, week: week);
       _error = null;
     } catch (e) {
+      print(e.toString());
       _error = e.toString();
     } finally {
       _isLoading = false;
@@ -37,14 +37,14 @@ class ScheduleController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadTodaySchedule(int groupId, {int? week}) async {
+  Future<void> loadActualSchedule(int groupId, {int? week}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       _currentWeek = await _repository.getCurrentWeek();
-      _scheduleResponse = await _repository.getTodaySchedule(groupId, week: week);
+      _scheduleResponse = await _repository.getActualSchedule(groupId, week: week);
       _error = null;
     } catch (e) {
       _error = e.toString();

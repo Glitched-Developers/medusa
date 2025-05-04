@@ -1,4 +1,3 @@
-// lib/views/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:medusa/controllers/settings_controller.dart';
 import 'package:provider/provider.dart';
@@ -10,59 +9,66 @@ class HomeScreenView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Provider.of<ScheduleController>(context, listen: false);
+    final scheduleController = Provider.of<ScheduleController>(context, listen: false);
+    // Используем Consumer для реагирования на изменения в SettingsController
+    return Consumer<SettingsController>(
+      builder: (context, settingsController, _) {
+        final currentGroup = settingsController.selectedGroup;
 
-    return Scaffold(
-      body:
-      Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                final selectedGroup = 90002493; // Получено из формы
-                Provider.of<SettingsController>(context, listen: false)
-                    .setSelectedGroup(selectedGroup);
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  currentGroup != null
+                      ? 'Текущая группа: $currentGroup'
+                      : 'Группа не выбрана',
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 20),
 
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomeScreenView()),
-                );
-              },
-              child: Text('Сохранить'),
+                ElevatedButton(
+                  onPressed: () {
+                    final selectedGroup = 90002493;
+                    settingsController.setSelectedGroup(selectedGroup);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Группа сохранена'),
+                      ),
+                    );
+                  },
+                  child: Text('Сохранить'),
+                ),
+
+                SizedBox(height: 20),
+
+                ElevatedButton(
+                  onPressed: currentGroup == null
+                      ? null // Делаем кнопку неактивной, если группа не выбрана
+                      : () async {
+                    await scheduleController.loadSchedule(currentGroup);
+
+                    if (scheduleController.error == null && context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ScheduleScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Загрузить расписание',
+                    textScaler: TextScaler.linear(1.5),
+                  ),
+                )
+              ],
             ),
-
-            ElevatedButton(
-              onPressed: () async {
-                int? group = Provider.of<SettingsController>(context, listen: false).selectedGroup;
-
-                if (group == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Выберите группу'),
-                    ),
-                  );
-                  return;
-                }
-
-                await controller.loadSchedule(group);
-
-                if (controller.error == null && context.mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ScheduleScreen(),
-                    ),
-                  );
-                }
-              },
-
-              child: const Text('Загрузить расписание', textScaler: TextScaler.linear(1.5),),
-            )
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
-

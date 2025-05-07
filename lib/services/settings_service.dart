@@ -8,13 +8,15 @@ class SettingsService extends BaseStorageService {
   // Новые ключи для настроек темы
   static const String _isDarkModeKey = 'isDarkMode';
   static const String _selectedFlexSchemeKey = 'selectedFlexScheme';
+  static const String _firstLaunchKey = 'first_launch_completed';
 
   @override
   Set<String> getAllowedKeys() {
     return <String>{
       _groupKey,
       _isDarkModeKey,
-      _selectedFlexSchemeKey
+      _selectedFlexSchemeKey,
+      _firstLaunchKey
     };
   }
 
@@ -35,8 +37,6 @@ class SettingsService extends BaseStorageService {
     await remove(_groupKey);
   }
 
-  // Новые методы для работы с настройками темы
-
   // Сохранение состояния темного режима
   Future<void> saveDarkModeState(bool isDarkMode) async {
     await setBool(_isDarkModeKey, isDarkMode);
@@ -55,5 +55,13 @@ class SettingsService extends BaseStorageService {
   // Получение выбранной темы
   Future<String> getSelectedTheme() async {
     return await getString(_selectedFlexSchemeKey) ?? FlexScheme.material.name;
+  }
+
+  Future<bool> getFirstLaunchStatus() async {
+    return await containsKey(_firstLaunchKey);
+  }
+
+  Future<void> setFirstLaunchCompleate() async {
+    await setInt(_firstLaunchKey, 1);
   }
 }

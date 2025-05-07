@@ -5,11 +5,13 @@ import 'package:medusa/view/widgets/lesson_title.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/schedule_controller.dart';
 
-class ScheduleScreen extends StatelessWidget {
-  const ScheduleScreen({super.key});
+class ScheduleScreenView extends StatelessWidget {
+  const ScheduleScreenView({super.key});
 
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,

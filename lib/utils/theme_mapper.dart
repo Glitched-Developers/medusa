@@ -140,7 +140,6 @@ class ThemeMapper {
         return 'Тёмный-жёлтый';
       case FlexScheme.shadZinc:
         return 'Тёмный цинк';
-
       case FlexScheme.custom:
         return 'Необычная';
       default:
@@ -148,9 +147,7 @@ class ThemeMapper {
     }
   }
 
-  /// Преобразует пользовательское имя темы обратно в FlexScheme
-  /// Если соответствие не найдено, возвращает FlexScheme.material
-  static FlexScheme getSchemeFromDisplayName(String displayName) {
+   static FlexScheme getSchemeFromDisplayName(String displayName) {
     for (var scheme in FlexScheme.values) {
       if (getDisplayName(scheme) == displayName) {
         return scheme;

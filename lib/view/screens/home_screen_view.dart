@@ -54,7 +54,7 @@ class HomeScreenView extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ScheduleScreen(),
+                          builder: (context) => const ScheduleScreenView(),
                         ),
                       );
                     }

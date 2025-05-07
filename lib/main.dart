@@ -1,5 +1,6 @@
-import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
+import 'package:medusa/view/screens/schedule_screen_view.dart';
+import 'package:medusa/view/screens/welcome_screen_view.dart';
 import 'package:provider/provider.dart';
 import 'controllers/schedule_controller.dart';
 import 'controllers/settings_controller.dart';
@@ -9,7 +10,6 @@ import 'services/schedule_cache_service.dart';
 import 'services/settings_service.dart';
 import 'themes/provider/theme_provider.dart';
 import 'utils/constants.dart';
-import 'view/screens/home_screen_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +81,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
-            title: 'JellyFish',
+            title: 'Medusa',
             debugShowCheckedModeBanner: false,
             themeMode: themeProvider.themeMode,
             theme: themeProvider.currentTheme,
@@ -90,7 +90,9 @@ class MyApp extends StatelessWidget {
               Locale('ru', 'RU'),  // Russian
               Locale('en', 'US'),  // English
             ],
-            home: const HomeScreenView(),
+            home: settingsController.isFirstLaunchCompleted
+                ? const ScheduleScreenView()  // Если не первый запуск - основной экран
+                : const WelcomeScreenView(),  // Если первый запуск - экран приветствия
           );
         },
       ),

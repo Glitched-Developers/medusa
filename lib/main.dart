@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:medusa/view/screens/Initial_setup_screen_view.dart';
-import 'package:medusa/view/screens/schedule_screen_view.dart';
-import 'package:medusa/view/screens/welcome_screen_view.dart';
 import 'package:provider/provider.dart';
 import 'controllers/schedule_controller.dart';
 import 'controllers/settings_controller.dart';

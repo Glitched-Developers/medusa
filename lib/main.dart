@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:medusa/view/screens/Initial_setup_screen_view.dart';
 import 'package:medusa/view/screens/schedule_screen_view.dart';
 import 'package:medusa/view/screens/welcome_screen_view.dart';
 import 'package:provider/provider.dart';
@@ -90,9 +91,11 @@ class MyApp extends StatelessWidget {
               Locale('ru', 'RU'),  // Russian
               Locale('en', 'US'),  // English
             ],
-            home: settingsController.isFirstLaunchCompleted
-                ? const ScheduleScreenView()  // Если не первый запуск - основной экран
-                : const WelcomeScreenView(),  // Если первый запуск - экран приветствия
+
+            home: InitialSetupScreenView()
+            //home: settingsController.isFirstLaunchCompleted
+            //    ? const ScheduleScreenView()  // Если не первый запуск - основной экран
+            //    : const WelcomeScreenView(),  // Если первый запуск - экран приветствия
           );
         },
       ),

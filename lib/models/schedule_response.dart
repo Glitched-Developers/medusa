@@ -54,10 +54,12 @@ class ScheduleResponse {
         'type': lesson.type,
         'name': lesson.name,
         'teacher': lesson.teacher,
+        if (lesson.teacherId != null) 'teacherId': lesson.teacherId,
         'auditory': lesson.auditory,
         'online': lesson.online,
         'key': lesson.key,
         if (lesson.subgroup != null) 'subgroup': lesson.subgroup,
+        if (lesson.url != null) 'url': lesson.url,
       }).toList();
     });
 

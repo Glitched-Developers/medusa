@@ -1,4 +1,5 @@
 import 'package:flex_color_scheme/flex_color_scheme.dart';
+
 import '../../themes/provider/theme_provider.dart';
 import '../../utils/theme_mapper.dart';
 
@@ -8,24 +9,22 @@ class SettingsScreenController {
 
   SettingsScreenController(this.themeProvider);
 
-  // Получение списка доступных тем
-  List<FlexScheme> getAvailableThemes() {
-    return FlexScheme.values;
+  // Список имён схем: первая — фирменная тема БелГУ, дальше flex-схемы
+  List<String> getAvailableThemes() {
+    return [
+      ThemeMapper.belguScheme,
+      ...FlexScheme.values.map((scheme) => scheme.name),
+    ];
   }
 
   // Установка выбранной темы
-  void setTheme(FlexScheme scheme) {
-    themeProvider.setFlexSchemeTheme(scheme.name);
+  void setTheme(String schemeName) {
+    themeProvider.setFlexSchemeTheme(schemeName);
   }
 
-  // Получение текущей темы (теперь с использованием локализованных названий)
+  // Получение текущей темы (с локализованными названиями)
   String getCurrentTheme() {
-    final schemeName = themeProvider.selectedFlexScheme;
-    final scheme = FlexScheme.values.firstWhere(
-          (scheme) => scheme.name == schemeName,
-      orElse: () => FlexScheme.material,
-    );
-    return ThemeMapper.getDisplayName(scheme);
+    return ThemeMapper.getDisplayNameFor(themeProvider.selectedFlexScheme);
   }
 
   // Переключение на темный/светлый режим

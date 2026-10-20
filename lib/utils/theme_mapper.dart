@@ -1,8 +1,23 @@
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 
+import '../../themes/bsu_theme.dart';
+
 /// Утилитарный класс для преобразования технических названий тем
 /// в удобочитаемые названия для пользователей
 class ThemeMapper {
+  /// Имя фирменной темы БелГУ (не входит в FlexScheme).
+  static const String belguScheme = BsuTheme.schemeName;
+
+  /// Отображаемое название по техническому имени схемы.
+  static String getDisplayNameFor(String schemeName) {
+    if (schemeName == belguScheme) return 'БелГУ (фирменная)';
+    final scheme = FlexScheme.values.firstWhere(
+          (s) => s.name == schemeName,
+      orElse: () => FlexScheme.material,
+    );
+    return getDisplayName(scheme);
+  }
+
   /// Возвращает понятные пользователю названия тем на русском языке
   static String getDisplayName(FlexScheme scheme) {
     switch (scheme) {

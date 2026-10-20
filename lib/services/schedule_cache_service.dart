@@ -3,9 +3,11 @@ import 'base_services/base_storage_service.dart';
 import '../models/schedule_response.dart';
 
 class ScheduleCacheService extends BaseStorageService {
-  // Keys for storing different types of data
-  static const String _scheduleKey = 'cached_schedule_';
-  static const String _actualScheduleKey = 'cached_actual_schedule_';
+  // Keys for storing different types of data.
+  // _scheduleKey содержит версию схемы (v2): данные, сохранённые до
+  // появления teacherId, игнорируются и перезагружаются с сайта.
+  static const String _scheduleKey = 'cached_schedule_v2_';
+  static const String _actualScheduleKey = 'cached_actual_schedule_v2_';
   static const String _weekKey = 'cached_current_week';
   static const String _timestampPrefix = 'timestamp_';
 
@@ -13,6 +15,10 @@ class ScheduleCacheService extends BaseStorageService {
   static const int _scheduleTtlMinutes = 60; // 1 hour
   static const int _actualScheduleTtlMinutes = 15; // 15 minutes
   static const int _weekTtlMinutes = 240; // 4 hours
+
+  /// Сколько дней храним расписание на телефоне. Меняется из настроек:
+  /// пока интернета нет, приложение живёт на этом снимке.
+  int retentionDays = 30;
 
   @override
   Set<String> getAllowedKeys() {
@@ -107,6 +113,62 @@ class ScheduleCacheService extends BaseStorageService {
     }
   }
 
+  /// Сохранённое расписание без проверки «свежести» — для офлайна.
+  ///
+  /// Отдаём снимок, пока он не старше [retentionDays]: даже через неделю
+  /// без интернета студент увидит своё расписание, а не пустой экран.
+  Future<ScheduleResponse?> getStaleSchedule(int groupId, int? week) async {
+    try {
+      final key = _getScheduleKey(groupId, week);
+      if (!await _isWithinRetention(key)) return null;
+      final dataString = await getString(key);
+      if (dataString == null) return null;
+      final data = jsonDecode(dataString) as Map<String, dynamic>;
+      return ScheduleResponse.fromJson(data);
+    } catch (e) {
+      print('Error getting stale schedule: $e');
+      return null;
+    }
+  }
+
+  /// Когда расписание было сохранено (для подписи «данные от …»).
+  Future<DateTime?> getCachedAt(int groupId, int? week) async {
+    final key = _getScheduleKey(groupId, week);
+    final timestamp = await getInt(_getTimestampKey(key));
+    if (timestamp == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(timestamp);
+  }
+
+  /// Снимок ещё не старше срока хранения из настроек.
+  Future<bool> _isWithinRetention(String key) async {
+    if (!await containsKey(key)) return false;
+    final timestamp = await getInt(_getTimestampKey(key));
+    if (timestamp == null) return false;
+    final age = DateTime.now().millisecondsSinceEpoch - timestamp;
+    return age <= Duration(days: retentionDays).inMilliseconds;
+  }
+
+  /// Удаляет снимки, которые вышли за срок хранения из настроек.
+  Future<void> pruneExpired() async {
+    try {
+      final prefs = await getPrefs();
+      final limit = Duration(days: retentionDays).inMilliseconds;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      for (final key in prefs.getKeys().toList()) {
+        final isSchedule = key.startsWith(_scheduleKey) ||
+            key.startsWith(_actualScheduleKey);
+        if (!isSchedule) continue;
+        final timestamp = prefs.getInt(_getTimestampKey(key));
+        if (timestamp == null || now - timestamp > limit) {
+          await prefs.remove(key);
+          await prefs.remove(_getTimestampKey(key));
+        }
+      }
+    } catch (e) {
+      print('Error pruning cache: $e');
+    }
+  }
+
   Future<int?> getCurrentWeek() async {
     try {
       if (!await isValid(_weekKey, _weekTtlMinutes)) {
@@ -115,6 +177,16 @@ class ScheduleCacheService extends BaseStorageService {
       return await getInt(_weekKey);
     } catch (e) {
       print('Error getting current week: $e');
+      return null;
+    }
+  }
+
+  /// Номер недели без проверки срока: нужен, когда сети нет.
+  Future<int?> getCachedWeek() async {
+    try {
+      if (!await containsKey(_weekKey)) return null;
+      return await getInt(_weekKey);
+    } catch (e) {
       return null;
     }
   }

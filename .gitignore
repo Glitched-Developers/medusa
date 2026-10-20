@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Локальные скриншоты проверки и служебные файлы машины
+.preview*/
+.config/
+.flutter
+.sudo_as_admin_successful
+.gitconfig

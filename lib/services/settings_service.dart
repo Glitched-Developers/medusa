@@ -1,5 +1,4 @@
 import 'base_services/base_storage_service.dart';
-import 'package:flex_color_scheme/flex_color_scheme.dart';
 
 class SettingsService extends BaseStorageService {
   // Существующие ключи
@@ -9,6 +8,10 @@ class SettingsService extends BaseStorageService {
   static const String _isDarkModeKey = 'isDarkMode';
   static const String _selectedFlexSchemeKey = 'selectedFlexScheme';
   static const String _firstLaunchKey = 'first_launch_completed';
+  static const String _offlineRetentionKey = 'offline_retention_days';
+
+  /// Сколько дней храним расписание на телефоне (по умолчанию — месяц).
+  static const int defaultOfflineRetentionDays = 30;
 
   @override
   Set<String> getAllowedKeys() {
@@ -16,7 +19,8 @@ class SettingsService extends BaseStorageService {
       _groupKey,
       _isDarkModeKey,
       _selectedFlexSchemeKey,
-      _firstLaunchKey
+      _firstLaunchKey,
+      _offlineRetentionKey
     };
   }
 
@@ -54,7 +58,7 @@ class SettingsService extends BaseStorageService {
 
   // Получение выбранной темы
   Future<String> getSelectedTheme() async {
-    return await getString(_selectedFlexSchemeKey) ?? FlexScheme.material.name;
+    return await getString(_selectedFlexSchemeKey) ?? 'belgu';
   }
 
   Future<bool> getFirstLaunchStatus() async {
@@ -63,5 +67,16 @@ class SettingsService extends BaseStorageService {
 
   Future<void> setFirstLaunchCompleate() async {
     await setInt(_firstLaunchKey, 1);
+  }
+
+  /// Сколько дней расписание хранится на телефоне (1–365).
+  Future<int> getOfflineRetentionDays() async {
+    final value = await getInt(_offlineRetentionKey);
+    if (value == null) return defaultOfflineRetentionDays;
+    return value.clamp(1, 365);
+  }
+
+  Future<void> saveOfflineRetentionDays(int days) async {
+    await setInt(_offlineRetentionKey, days.clamp(1, 365));
   }
 }

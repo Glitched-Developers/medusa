@@ -2,10 +2,11 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/settings_service.dart';
+import '../bsu_theme.dart';
 
 class ThemeProvider with ChangeNotifier {
   bool _isDarkMode = false;
-  String _selectedFlexScheme = FlexScheme.material.name;
+  String _selectedFlexScheme = BsuTheme.schemeName;
   final SettingsService _settingsService;
 
   bool get isDarkMode => _isDarkMode;
@@ -27,16 +28,16 @@ class ThemeProvider with ChangeNotifier {
   // Переключение темы
   void toggleTheme() {
     _isDarkMode = !_isDarkMode;
-    _settingsService.saveDarkModeState(_isDarkMode);
     notifyListeners();
+    _settingsService.saveDarkModeState(_isDarkMode).catchError((_) {});
   }
 
   // Установка конкретной темы
   void setDarkMode(bool value) {
     if (_isDarkMode != value) {
       _isDarkMode = value;
-      _settingsService.saveDarkModeState(_isDarkMode);
       notifyListeners();
+      _settingsService.saveDarkModeState(_isDarkMode).catchError((_) {});
     }
   }
 
@@ -44,30 +45,41 @@ class ThemeProvider with ChangeNotifier {
   Future<void> useSystemTheme() async {
     final window = WidgetsBinding.instance.window;
     _isDarkMode = window.platformBrightness == Brightness.dark;
-    _settingsService.saveDarkModeState(_isDarkMode);
     notifyListeners();
+    _settingsService.saveDarkModeState(_isDarkMode).catchError((_) {});
   }
 
-  // Установка темы из flex_color_scheme
+  // Установка темы из flex_color_scheme.
+  // Сначала обновляем UI, потом сохраняем: сбой сохранения
+  // не должен оставлять пользователя со «старой» темой.
   void setFlexSchemeTheme(String schemeName) {
     if (_selectedFlexScheme != schemeName) {
       _selectedFlexScheme = schemeName;
-      _settingsService.saveSelectedTheme(_selectedFlexScheme);
       notifyListeners();
+      _settingsService.saveSelectedTheme(_selectedFlexScheme).catchError((_) {});
     }
   }
 
-  // Получение текущей темы FlexColorScheme
+  // Получение текущей темы: фирменная «БелГУ» или одна из flex-схем
   ThemeData get currentTheme {
+    if (_selectedFlexScheme == BsuTheme.schemeName) {
+      return _isDarkMode ? BsuTheme.dark() : BsuTheme.light();
+    }
+
     final scheme = FlexScheme.values.firstWhere(
           (scheme) => scheme.name == _selectedFlexScheme,
       orElse: () => FlexScheme.material,
     );
 
-    if (_isDarkMode) {
-      return FlexColorScheme.dark(scheme: scheme).toTheme;
-    } else {
-      return FlexColorScheme.light(scheme: scheme).toTheme;
+    try {
+      if (_isDarkMode) {
+        return FlexColorScheme.dark(scheme: scheme).toTheme;
+      } else {
+        return FlexColorScheme.light(scheme: scheme).toTheme;
+      }
+    } catch (_) {
+      // Любая ошибка построения flex-схемы не должна ломать приложение
+      return _isDarkMode ? BsuTheme.dark() : BsuTheme.light();
     }
   }
 }

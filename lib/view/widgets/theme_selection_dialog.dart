@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 
 import '../../controllers/ui/settings_screen_controller.dart';
+import '../../themes/bsu_theme.dart';
 import '../../utils/theme_mapper.dart';
 
 class ThemeSelectionDialog extends StatelessWidget {
@@ -15,22 +16,22 @@ class ThemeSelectionDialog extends StatelessWidget {
 
     return SimpleDialog(
       title: const Text('Выберите тему'),
-      children: themes.map((scheme) {
+      children: themes.map((schemeName) {
         return SimpleDialogOption(
-          onPressed: () => Navigator.pop(context, scheme),
+          onPressed: () => Navigator.pop(context, schemeName),
           child: Row(
             children: [
               Container(
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: _getColorForScheme(scheme, context),
+                  color: _getColorForScheme(schemeName, context),
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 16),
               Text(
-                ThemeMapper.getDisplayName(scheme),
+                ThemeMapper.getDisplayNameFor(schemeName),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
@@ -41,13 +42,23 @@ class ThemeSelectionDialog extends StatelessWidget {
   }
 
   // Получает основной цвет для схемы (для превью)
-  Color _getColorForScheme(FlexScheme scheme, BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  Color _getColorForScheme(String schemeName, BuildContext context) {
+    if (schemeName == ThemeMapper.belguScheme) return BsuColors.green;
 
-    if (isDark) {
-      return FlexColorScheme.dark(scheme: scheme).toScheme.primary;
-    } else {
-      return FlexColorScheme.light(scheme: scheme).toScheme.primary;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = FlexScheme.values.firstWhere(
+          (s) => s.name == schemeName,
+      orElse: () => FlexScheme.material,
+    );
+
+    try {
+      if (isDark) {
+        return FlexColorScheme.dark(scheme: scheme).toScheme.primary;
+      } else {
+        return FlexColorScheme.light(scheme: scheme).toScheme.primary;
+      }
+    } catch (_) {
+      return BsuColors.green;
     }
   }
 }

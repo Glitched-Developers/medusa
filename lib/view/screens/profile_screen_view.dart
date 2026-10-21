@@ -10,6 +10,7 @@ import '../../models/user_profile.dart';
 import '../../utils/group_format.dart';
 import '../../utils/profanity_filter.dart';
 import '../transitions/fade_up_page_route.dart';
+import '../widgets/badge_details_sheet.dart';
 import '../widgets/badge_medal.dart';
 import '../widgets/ripple_tap.dart';
 import 'Initial_setup_screen_view.dart';
@@ -38,8 +39,18 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
 
   /// Набор аватаров: картинки грузить неоткуда, а эмодзи читается сразу.
   static const List<String> _avatars = <String>[
-    '🌿', '🎓', '📚', '🧑‍🎓', '👩‍🎓', '🧑‍🏫',
-    '🐢', '🦊', '🐳', '🌟', '☕', '🎧',
+    '🌿',
+    '🎓',
+    '📚',
+    '🧑‍🎓',
+    '👩‍🎓',
+    '🧑‍🏫',
+    '🐢',
+    '🦊',
+    '🐳',
+    '🌟',
+    '☕',
+    '🎧',
   ];
 
   @override
@@ -66,9 +77,12 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
     final about = _about.text.trim();
 
     setState(() {
-      _nameError = name.isEmpty
-          ? 'Без имени профиль не сохранить'
-          : (ProfanityFilter.contains(name) ? ProfanityFilter.message : null);
+      _nameError =
+          name.isEmpty
+              ? 'Без имени профиль не сохранить'
+              : (ProfanityFilter.contains(name)
+                  ? ProfanityFilter.message
+                  : null);
       _aboutError =
           ProfanityFilter.contains(about) ? ProfanityFilter.message : null;
     });
@@ -120,42 +134,45 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
     final textController = TextEditingController();
     final code = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Код значка'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Коды эксклюзивных значков выдаёт команда Медузки.',
-              style: TextStyle(fontSize: 13),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Код значка'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Коды эксклюзивных значков выдаёт команда Медузки.',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'Например, MEDUZA-DEV',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted:
+                      (value) => Navigator.of(dialogContext).pop(value.trim()),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              autofocus: true,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                labelText: 'Например, MEDUZA-DEV',
-                border: OutlineInputBorder(),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Отмена'),
               ),
-              onSubmitted: (value) =>
-                  Navigator.of(dialogContext).pop(value.trim()),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Отмена'),
+              FilledButton(
+                onPressed:
+                    () => Navigator.of(
+                      dialogContext,
+                    ).pop(textController.text.trim()),
+                child: const Text('Активировать'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(textController.text.trim()),
-            child: const Text('Активировать'),
-          ),
-        ],
-      ),
     );
     textController.dispose();
 
@@ -165,9 +182,7 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
 
     final messenger = ScaffoldMessenger.of(context);
     if (badge == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Код не подошёл')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Код не подошёл')));
       return;
     }
     messenger.showSnackBar(
@@ -175,54 +190,8 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
     );
   }
 
-  Future<void> _showBadge(UserBadge badge, bool earned) async {
-    final scheme = Theme.of(context).colorScheme;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BadgeMedal(badge: badge, earned: earned, size: 72),
-            const SizedBox(height: 12),
-            Text(
-              badge.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              badge.description,
-              style: TextStyle(fontSize: 13, color: scheme.outline),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              earned
-                  ? 'Значок получен'
-                  : badge.isExclusive
-                      ? 'Эксклюзивный: выдаётся командой Медузки по коду'
-                      : 'Ещё не получен',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: earned ? scheme.primary : scheme.outline,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Закрыть'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _showBadge(UserBadge badge, bool earned) {
+    return showBadgeDetails(context, badge, earned: earned);
   }
 
   @override
@@ -386,10 +355,7 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
                   child: CircleAvatar(
                     radius: 30,
                     backgroundColor: scheme.surface,
-                    child: Text(
-                      _avatar,
-                      style: const TextStyle(fontSize: 30),
-                    ),
+                    child: Text(_avatar, style: const TextStyle(fontSize: 30)),
                   ),
                 ),
               ),
@@ -402,8 +368,9 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
                       name.isEmpty ? 'Без имени' : name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Wrap(
@@ -412,12 +379,12 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
                       children: [
                         _pill(
                           context,
-                          icon: _role == 'teacher'
-                              ? Icons.school_outlined
-                              : Icons.person_outline,
-                          label: _role == 'teacher'
-                              ? 'Преподаватель'
-                              : 'Студент',
+                          icon:
+                              _role == 'teacher'
+                                  ? Icons.school_outlined
+                                  : Icons.person_outline,
+                          label:
+                              _role == 'teacher' ? 'Преподаватель' : 'Студент',
                         ),
                         _pill(
                           context,
@@ -593,8 +560,9 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
                       children: [
                         Text(
                           'Витрина профиля',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const Spacer(),
                         Text(
@@ -655,9 +623,10 @@ class _ProfileScreenViewState extends State<ProfileScreenView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: highlighted
-            ? scheme.primary.withValues(alpha: 0.16)
-            : scheme.surface.withValues(alpha: 0.7),
+        color:
+            highlighted
+                ? scheme.primary.withValues(alpha: 0.16)
+                : scheme.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -760,9 +729,10 @@ class _ShowcaseOption extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           color: selected ? scheme.primary.withValues(alpha: 0.10) : null,
           border: Border.all(
-            color: selected
-                ? scheme.primary.withValues(alpha: 0.7)
-                : scheme.outlineVariant.withValues(alpha: 0.6),
+            color:
+                selected
+                    ? scheme.primary.withValues(alpha: 0.7)
+                    : scheme.outlineVariant.withValues(alpha: 0.6),
             width: selected ? 1.6 : 1,
           ),
         ),
@@ -772,11 +742,7 @@ class _ShowcaseOption extends StatelessWidget {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                BadgeMedal(
-                  badge: badge,
-                  size: 44,
-                  animate: badge.isExclusive,
-                ),
+                BadgeMedal(badge: badge, size: 44, animate: badge.isExclusive),
                 if (selected)
                   Positioned(
                     right: -4,
@@ -889,9 +855,10 @@ class _AvatarSheet extends StatelessWidget {
                   customBorder: const CircleBorder(),
                   child: CircleAvatar(
                     radius: 26,
-                    backgroundColor: avatar == current
-                        ? scheme.primary
-                        : scheme.surfaceContainerHighest,
+                    backgroundColor:
+                        avatar == current
+                            ? scheme.primary
+                            : scheme.surfaceContainerHighest,
                     child: Text(avatar, style: const TextStyle(fontSize: 24)),
                   ),
                 ),

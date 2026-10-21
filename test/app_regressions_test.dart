@@ -12,8 +12,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:medusa/controllers/badges_controller.dart';
 import 'package:medusa/controllers/bug_reports_controller.dart';
+import 'package:medusa/controllers/chat_controller.dart';
 import 'package:medusa/controllers/favorites_controller.dart';
 import 'package:medusa/controllers/help_controller.dart';
+import 'package:medusa/controllers/news_controller.dart';
 import 'package:medusa/controllers/notifications_controller.dart';
 import 'package:medusa/controllers/profile_controller.dart';
 import 'package:medusa/controllers/schedule_controller.dart';
@@ -26,9 +28,12 @@ import 'package:medusa/services/auditorium_index_service.dart';
 import 'package:medusa/services/bsu_api_service.dart';
 import 'package:medusa/services/badges_service.dart';
 import 'package:medusa/services/bug_report_service.dart';
+import 'package:medusa/services/chat_service.dart';
 import 'package:medusa/services/favorites_service.dart';
 import 'package:medusa/services/group_index_service.dart';
 import 'package:medusa/services/help_service.dart';
+import 'package:medusa/services/news_service.dart';
+import 'package:medusa/services/news_storage_service.dart';
 import 'package:medusa/services/notification_service.dart';
 import 'package:medusa/services/notifications_settings_service.dart';
 import 'package:medusa/services/profile_service.dart';
@@ -139,6 +144,12 @@ Future<Widget> _appWithProviders(
       ChangeNotifierProvider<BugReportsController>.value(
         value: BugReportsController(BugReportService()),
       ),
+      ChangeNotifierProvider<ChatController>.value(
+        value: ChatController(ChatService()),
+      ),
+      ChangeNotifierProvider<NewsController>.value(
+        value: NewsController(NewsService(), NewsStorageService()),
+      ),
       ChangeNotifierProvider<NotificationsController>.value(
         value: NotificationsController(
           NotificationService(),
@@ -182,23 +193,29 @@ void main() {
       await tester.pump();
 
       await tester.pumpWidget(
-        ChangeNotifierProvider<ProfileController>.value(
-          value: ProfileController(ProfileService()),
-          child: ChangeNotifierProvider<NotificationsController>.value(
-            value: NotificationsController(
-              NotificationService(),
-              NotificationsSettingsService(),
-            ),
-            child: ChangeNotifierProvider<SettingsController>.value(
-              value: SettingsController(settingsService),
-              child: ChangeNotifierProvider.value(
-                value: themeProvider,
-                child: Consumer<ThemeProvider>(
-                  builder: (context, p, _) => MaterialApp(
-                    theme: p.currentTheme,
-                    darkTheme: p.currentTheme,
-                    themeMode: p.themeMode,
-                    home: const SettingsScreen(),
+        ChangeNotifierProvider<ChatController>.value(
+          value: ChatController(ChatService()),
+          child: ChangeNotifierProvider<NewsController>.value(
+            value: NewsController(NewsService(), NewsStorageService()),
+            child: ChangeNotifierProvider<ProfileController>.value(
+              value: ProfileController(ProfileService()),
+              child: ChangeNotifierProvider<NotificationsController>.value(
+                value: NotificationsController(
+                  NotificationService(),
+                  NotificationsSettingsService(),
+                ),
+                child: ChangeNotifierProvider<SettingsController>.value(
+                  value: SettingsController(settingsService),
+                  child: ChangeNotifierProvider.value(
+                    value: themeProvider,
+                    child: Consumer<ThemeProvider>(
+                      builder: (context, p, _) => MaterialApp(
+                        theme: p.currentTheme,
+                        darkTheme: p.currentTheme,
+                        themeMode: p.themeMode,
+                        home: const SettingsScreen(),
+                      ),
+                    ),
                   ),
                 ),
               ),

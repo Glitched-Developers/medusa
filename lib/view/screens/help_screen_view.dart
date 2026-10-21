@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../../controllers/help_controller.dart';
 import '../../models/help_request.dart';
+import '../../models/persona.dart';
 import '../../themes/bsu_theme.dart';
 import '../../utils/help_helpers.dart';
+import '../transitions/fade_up_page_route.dart';
 import '../widgets/help_sheets.dart';
 import '../widgets/help_status_chip.dart';
 import '../widgets/ripple_tap.dart';
+import 'public_profile_screen.dart';
 
 /// Раздел «Помощь»: запросы преподавателей и отклики студентов.
 ///
@@ -287,11 +290,41 @@ class _HelpRequestCard extends StatelessWidget {
                   Icon(Icons.person_outline, size: 15, color: scheme.outline),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                      request.isDemo
-                          ? 'Просит: ${request.authorName} · пример'
-                          : 'Просит: ${request.authorName}',
-                      style: TextStyle(fontSize: 13, color: scheme.outline),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () => Navigator.of(context).push(
+                        FadeUpPageRoute(
+                          page: PublicProfileScreen(
+                            persona:
+                                PersonaCatalog.resolve(request.authorName),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              request.isDemo
+                                  ? 'Просит: ${request.authorName} · пример'
+                                  : 'Просит: ${request.authorName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: scheme.outline,
+                                decoration: TextDecoration.underline,
+                                decorationStyle: TextDecorationStyle.dotted,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 12,
+                            color: scheme.outline,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Text(

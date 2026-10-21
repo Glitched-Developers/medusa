@@ -6,8 +6,10 @@ import 'package:medusa/view/screens/splash_screen_view.dart';
 import 'package:provider/provider.dart';
 import 'controllers/badges_controller.dart';
 import 'controllers/bug_reports_controller.dart';
+import 'controllers/chat_controller.dart';
 import 'controllers/favorites_controller.dart';
 import 'controllers/help_controller.dart';
+import 'controllers/news_controller.dart';
 import 'controllers/notifications_controller.dart';
 import 'controllers/profile_controller.dart';
 import 'controllers/schedule_controller.dart';
@@ -17,9 +19,12 @@ import 'services/bsu_api_service.dart';
 import 'services/auditorium_index_service.dart';
 import 'services/badges_service.dart';
 import 'services/bug_report_service.dart';
+import 'services/chat_service.dart';
 import 'services/favorites_service.dart';
 import 'services/group_index_service.dart';
 import 'services/help_service.dart';
+import 'services/news_service.dart';
+import 'services/news_storage_service.dart';
 import 'services/notification_service.dart';
 import 'services/notifications_settings_service.dart';
 import 'services/profile_service.dart';
@@ -106,6 +111,16 @@ void main() async {
     settings: settingsController,
   );
 
+  // Чаты и новости. Переписка пока хранится на телефоне (сервера нет),
+  // новости — с сайта БелГУ с кешем для чтения без интернета.
+  final chatService = ChatService();
+  await chatService.init();
+  final chatController = ChatController(chatService);
+  final newsStorage = NewsStorageService();
+  await newsStorage.init();
+  final newsController = NewsController(NewsService(), newsStorage);
+  unawaited(newsController.load());
+
   // Списки групп и аудиторий докачиваются в фоне: они нужны для поиска
   // по неполному номеру и для перехода в расписание кабинета.
   unawaited(groupIndexService.load());
@@ -131,6 +146,8 @@ void main() async {
     notificationsController: notificationsController,
     badgesController: badgesController,
     bugReportsController: bugReportsController,
+    chatController: chatController,
+    newsController: newsController,
   ));
 }
 
@@ -153,6 +170,8 @@ class MyApp extends StatelessWidget {
   final NotificationsController notificationsController;
   final BadgesController badgesController;
   final BugReportsController bugReportsController;
+  final ChatController chatController;
+  final NewsController newsController;
 
   const MyApp({
     super.key,
@@ -174,6 +193,8 @@ class MyApp extends StatelessWidget {
     required this.notificationsController,
     required this.badgesController,
     required this.bugReportsController,
+    required this.chatController,
+    required this.newsController,
   });
 
   @override
@@ -198,6 +219,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: notificationsController),
         ChangeNotifierProvider.value(value: badgesController),
         ChangeNotifierProvider.value(value: bugReportsController),
+        ChangeNotifierProvider.value(value: chatController),
+        ChangeNotifierProvider.value(value: newsController),
       ],
 
       child: Consumer<ThemeProvider>(

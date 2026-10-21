@@ -3,11 +3,26 @@ import 'package:provider/provider.dart';
 
 import '../../controllers/help_controller.dart';
 import '../../models/help_request.dart';
+import '../../models/persona.dart';
 import '../../themes/bsu_theme.dart';
 import '../../utils/help_helpers.dart';
 import '../../utils/profanity_filter.dart';
+import '../screens/public_profile_screen.dart';
+import '../transitions/fade_up_page_route.dart';
 import 'help_status_chip.dart';
 import 'ripple_tap.dart';
+
+/// Открыть профиль человека из шторки: сначала закрываем шторку,
+/// затем показываем профиль.
+void _openPerson(BuildContext context, String name) {
+  final navigator = Navigator.of(context);
+  navigator.pop();
+  navigator.push(
+    FadeUpPageRoute(
+      page: PublicProfileScreen(persona: PersonaCatalog.resolve(name)),
+    ),
+  );
+}
 
 /// ---------- Профиль: как подписываться и в какой роли ----------
 
@@ -718,7 +733,14 @@ class _HelpRequestDetailsSheet extends StatelessWidget {
               Text(request.description),
               const SizedBox(height: 12),
             ],
-            _InfoRow(icon: Icons.person_outline, text: 'Просит: ${request.authorName}'),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => _openPerson(context, request.authorName),
+              child: _InfoRow(
+                icon: Icons.person_outline,
+                text: 'Просит: ${request.authorName} · профиль',
+              ),
+            ),
             if (request.place.isNotEmpty)
               _InfoRow(icon: Icons.place_outlined, text: request.place),
             if (request.timeText.isNotEmpty)
@@ -769,6 +791,12 @@ class _HelpRequestDetailsSheet extends StatelessWidget {
                       ),
                     ),
                     HelpStatusChip(volunteer: volunteer),
+                    IconButton(
+                      tooltip: 'Профиль и чат',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _openPerson(context, volunteer.name),
+                      icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                    ),
                   ],
                 ),
               ),

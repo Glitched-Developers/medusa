@@ -2,13 +2,16 @@
 import 'package:flutter/material.dart';
 import 'package:medusa/models/lesson.dart';
 import 'package:medusa/view/screens/Initial_setup_screen_view.dart';
+import 'package:medusa/view/screens/chats_screen_view.dart';
 import 'package:medusa/view/screens/help_screen_view.dart';
+import 'package:medusa/view/screens/news_screen_view.dart';
 import 'package:medusa/view/screens/settings_screen_view.dart';
 import 'package:medusa/view/transitions/fade_up_page_route.dart';
 import 'package:medusa/view/widgets/blur_fade.dart';
 import 'package:medusa/view/widgets/lesson_title.dart';
 import 'package:medusa/view/widgets/ripple_tap.dart';
 import 'package:provider/provider.dart';
+import '../../controllers/chat_controller.dart';
 import '../../controllers/favorites_controller.dart';
 import '../../controllers/help_controller.dart';
 import '../../controllers/schedule_controller.dart';
@@ -37,6 +40,7 @@ class ScheduleScreenView extends StatelessWidget {
     final group = context.watch<SettingsController>().selectedGroup;
     final controller = context.watch<ScheduleController>();
     final helpCount = context.watch<HelpController>().openCount;
+    final chatCount = context.watch<ChatController>().unreadTotal;
     final favorites = context.watch<FavoritesController>();
     // Номер группы на сайте — всегда восемь цифр: ведущие нули значимы
     // (01002205 и 1002205 — для сайта разные группы).
@@ -83,11 +87,28 @@ class ScheduleScreenView extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Текущая неделя',
-            onPressed: controller.weekOffset != 0 && !controller.isLoading
-                ? () => controller.goToCurrentWeek()
-                : null,
-            icon: const Icon(Icons.today),
+            tooltip: 'Чаты',
+            onPressed: () {
+              Navigator.push(
+                context,
+                FadeUpPageRoute(page: const ChatsScreenView()),
+              );
+            },
+            icon: Badge(
+              isLabelVisible: chatCount > 0,
+              label: Text('$chatCount'),
+              child: const Icon(Icons.forum_outlined),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Новости БелГУ',
+            onPressed: () {
+              Navigator.push(
+                context,
+                FadeUpPageRoute(page: const NewsScreenView()),
+              );
+            },
+            icon: const Icon(Icons.newspaper_outlined),
           ),
           IconButton(
             onPressed: () {
@@ -164,21 +185,30 @@ class ScheduleScreenView extends StatelessWidget {
                     duration: const Duration(milliseconds: 250),
                     switchInCurve: Curves.easeOut,
                     switchOutCurve: Curves.easeIn,
-                    child: Column(
+                    child: InkWell(
                       key: ValueKey(offset),
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.labelSmall,
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: offset != 0 && !controller.isLoading
+                          ? () => controller.goToCurrentWeek()
+                          : null,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Column(
+                          children: [
+                            Text(
+                              title,
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                            Text(
+                              _weekRange(schedule),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
-                        Text(
-                          _weekRange(schedule),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

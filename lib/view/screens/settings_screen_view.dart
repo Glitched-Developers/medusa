@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/notifications_controller.dart';
+import '../../controllers/chat_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/settings_controller.dart';
 import '../../controllers/ui/settings_screen_controller.dart';
 import '../../themes/provider/theme_provider.dart';
 import '../../utils/theme_mapper.dart';
+import '../screens/chats_screen_view.dart';
+import '../screens/news_screen_view.dart';
 import '../screens/notifications_screen_view.dart';
 import '../screens/profile_screen_view.dart';
 import '../screens/reports_screen_view.dart';
@@ -313,6 +316,37 @@ class SettingsScreen extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   FadeUpPageRoute(page: const NotificationsScreenView()),
+                ),
+              );
+            },
+          ),
+
+          const Divider(),
+
+          // Новости и чаты — тоже на отдельных экранах.
+          ListTile(
+            leading: const Icon(Icons.newspaper_outlined),
+            title: const Text('Новости БелГУ'),
+            subtitle: const Text('Лента с сайта университета'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              FadeUpPageRoute(page: const NewsScreenView()),
+            ),
+          ),
+          Consumer<ChatController>(
+            builder: (context, chats, _) {
+              final unread = chats.unreadTotal;
+              return ListTile(
+                leading: const Icon(Icons.forum_outlined),
+                title: const Text('Чаты'),
+                subtitle: Text(
+                  unread > 0
+                      ? 'Непрочитанных сообщений: $unread'
+                      : 'Переписка с преподавателями и студентами',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  FadeUpPageRoute(page: const ChatsScreenView()),
                 ),
               );
             },

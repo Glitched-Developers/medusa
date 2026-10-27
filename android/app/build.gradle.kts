@@ -8,7 +8,6 @@ plugins {
 android {
     namespace = "glitched.network.medusa"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "28.2.13676358"
 
     compileOptions {
         // flutter_local_notifications требует desugaring для java.time.
@@ -24,6 +23,7 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "glitched.network.medusa"
+        ndkVersion = "30.0.16248370"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

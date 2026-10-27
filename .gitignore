@@ -32,7 +32,8 @@ android/gradle.properties
 .pub-cache/
 .pub/
 /build/
-
+android/build.gradle.kts
+android/settings.gradle.kts
 # Symbolication related
 app.*.symbols
 

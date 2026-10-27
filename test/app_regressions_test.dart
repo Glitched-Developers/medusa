@@ -40,7 +40,7 @@ import 'package:medusa/services/profile_service.dart';
 import 'package:medusa/services/schedule_cache_service.dart';
 import 'package:medusa/services/settings_service.dart';
 import 'package:medusa/themes/provider/theme_provider.dart';
-import 'package:medusa/view/screens/initial_setup_screen_view.dart';
+import 'package:medusa/view/screens/Initial_setup_screen_view.dart';
 import 'package:medusa/view/screens/settings_screen_view.dart';
 import 'package:medusa/view/screens/splash_screen_view.dart';
 import 'package:medusa/view/screens/teacher_schedule_screen.dart';

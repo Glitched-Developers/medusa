@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../themes/bsu_theme.dart';
 import '../transitions/fade_up_page_route.dart';
-import 'initial_setup_screen_view.dart';
+import 'package:medusa/view/screens/Initial_setup_screen_view.dart';
 
 /// Заставка при запуске: анимированная иконка «Медузки».
 ///

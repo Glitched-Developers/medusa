@@ -12,7 +12,7 @@ import 'dart:io';
 const _apkPath = 'build/app/outputs/flutter-apk/app-release.apk';
 // Имя файла содержит ревизию: браузер кеширует скачивания по имени,
 // и без смены имени телефон может получить старый APK с тем же адресом.
-const _apkName = 'meduzka-news4.apk';
+const _apkName = 'meduzka-review1.apk';
 
 Future<void> main(List<String> args) async {
   final port = args.isNotEmpty ? int.tryParse(args.first) ?? 8081 : 8081;

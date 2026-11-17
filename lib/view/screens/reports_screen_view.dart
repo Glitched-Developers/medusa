@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../controllers/bug_reports_controller.dart';
 import '../../models/bug_report.dart';
@@ -28,6 +32,7 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
   String? _error;
   bool _sending = false;
   DeviceInfo? _device;
+  XFile? _screenshot;
 
   @override
   void initState() {
@@ -52,7 +57,7 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
     return '${size.width.round()}x${size.height.round()}';
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({bool viaGithub = false}) async {
     final text = _text.text.trim();
     if (text.length < 10) {
       setState(() => _error = 'Опишите подробнее — хотя бы 10 символов');
@@ -69,28 +74,60 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
     });
 
     final controller = context.read<BugReportsController>();
+    final shot = _screenshot?.path;
     final report = await controller.submit(
       kind: _kind,
       text: text,
       screen: _screen,
+      screenshotPath: shot != null && File(shot).existsSync() ? shot : null,
     );
     if (!mounted) return;
 
     _text.clear();
-    setState(() => _sending = false);
+    setState(() {
+      _sending = false;
+      _screenshot = null;
+    });
     FocusScope.of(context).unfocus();
 
-    await _share(report, controller);
+    if (viaGithub) {
+      await _openGithub(report);
+    } else {
+      await _share(report, controller);
+    }
+  }
+
+  /// Приложить скриншот из галереи: пользователь делает снимок экрана
+  /// штатными средствами телефона и добавляет его к обращению.
+  Future<void> _pickScreenshot() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+      if (picked == null || !mounted) return;
+      setState(() => _screenshot = picked);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Не удалось открыть галерею');
+    }
   }
 
   /// Отправить обращение: системное «Поделиться» (Telegram, почта, …).
   /// Если поделиться не получилось — копируем текст в буфер.
   Future<void> _share(BugReport report, BugReportsController controller) async {
+    final shot = report.screenshotPath;
+    final files =
+        shot != null && File(shot).existsSync()
+            ? <XFile>[XFile(shot)]
+            : const <XFile>[];
     try {
       await SharePlus.instance.share(
         ShareParams(
           text: report.asMessage(),
           subject: 'Медузка — ${report.kind.label}',
+          files: files,
         ),
       );
       await controller.markSent(report.id);
@@ -102,6 +139,39 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
       const SnackBar(
         content: Text('Обращение сохранено — его видно в «Мои обращения»'),
         duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Открыть готовое issue в GitHub: текст и данные устройства уже
+  /// подставлены, остаётся проверить и нажать «Submit new issue».
+  Future<void> _openGithub(BugReport report) async {
+    final kind = report.kind == ReportKind.bug ? 'Баг' : 'Пожелание';
+    final firstLine = report.text.split('\n').first.trim();
+    final short =
+        firstLine.length > 64 ? '${firstLine.substring(0, 61)}…' : firstLine;
+    final uri = Uri.https(
+      'github.com',
+      '/Glitched-Developers/medusa/issues/new',
+      <String, String>{
+        'title': '$kind: $short',
+        'body':
+            '${report.asMessage()}\n\n---\n'
+            'Отправлено из приложения «Медузка».',
+        'labels': report.kind == ReportKind.bug ? 'bug' : 'enhancement',
+      },
+    );
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened
+              ? 'Открыли GitHub — проверьте текст и отправьте issue'
+              : 'Не удалось открыть браузер — обращение сохранено',
+        ),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -123,19 +193,15 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
     final controller = context.watch<BugReportsController>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Обратная связь'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Обратная связь'), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Text(
             'Что случилось?',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
@@ -168,11 +234,12 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
             maxLines: 8,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              hintText: _kind == ReportKind.bug
-                  ? 'Например: на вкладке «Расписание» не открывается пара, '
-                      'приложение закрывается при поиске группы…'
-                  : 'Например: хочу видеть расписание звонков и напоминание '
-                      'о зачётной неделе…',
+              hintText:
+                  _kind == ReportKind.bug
+                      ? 'Например: на вкладке «Расписание» не открывается пара, '
+                          'приложение закрывается при поиске группы…'
+                      : 'Например: хочу видеть расписание звонков и напоминание '
+                          'о зачётной неделе…',
               border: const OutlineInputBorder(),
               errorText: _error,
               errorMaxLines: 3,
@@ -182,9 +249,48 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
             },
           ),
           const SizedBox(height: 12),
-          _DeviceCard(device: _device ?? (controller.reports.isEmpty
-              ? null
-              : controller.reports.first.device)),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _sending ? null : _pickScreenshot,
+                icon: const Icon(Icons.image_outlined, size: 18),
+                label: Text(
+                  _screenshot == null
+                      ? 'Прикрепить скриншот'
+                      : 'Заменить скриншот',
+                ),
+              ),
+              if (_screenshot != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    File(_screenshot!.path),
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Убрать скриншот',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() => _screenshot = null),
+                  icon: const Icon(Icons.close, size: 18),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          _DeviceCard(
+            device:
+                _device ??
+                (controller.reports.isEmpty
+                    ? null
+                    : controller.reports.first.device),
+          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -192,17 +298,30 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
             child: RippleTap(
               borderRadius: 25,
               child: FilledButton.icon(
-                onPressed: _sending ? null : _submit,
-                icon: _sending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_outlined),
+                onPressed: _sending ? null : () => _submit(),
+                icon:
+                    _sending
+                        ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Icon(Icons.send_outlined),
                 label: const Text('Отправить отчёт'),
               ),
             ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _sending ? null : () => _submit(viaGithub: true),
+            icon: const Icon(Icons.open_in_new, size: 18),
+            label: const Text('Открыть issue на GitHub'),
+          ),
+          Text(
+            'Откроется браузер с готовым обращением — нужен аккаунт GitHub. '
+            'Скриншот к issue прикрепите вручную.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: scheme.outline),
           ),
           const SizedBox(height: 24),
           if (controller.reports.isNotEmpty) ...[
@@ -210,10 +329,9 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
               children: [
                 Text(
                   'Мои обращения',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const Spacer(),
                 Text(
@@ -227,9 +345,9 @@ class _ReportsScreenViewState extends State<ReportsScreenView> {
               _ReportCard(
                 report: report,
                 onCopy: () => _copy(report),
-                onDelete: () => context
-                    .read<BugReportsController>()
-                    .remove(report.id),
+                onDelete:
+                    () =>
+                        context.read<BugReportsController>().remove(report.id),
               ),
           ],
         ],
@@ -336,9 +454,10 @@ class _ReportCard extends StatelessWidget {
                   ? Icons.bug_report_outlined
                   : Icons.lightbulb_outline,
               size: 18,
-              color: report.kind == ReportKind.bug
-                  ? scheme.error
-                  : BsuColors.green,
+              color:
+                  report.kind == ReportKind.bug
+                      ? scheme.error
+                      : BsuColors.green,
             ),
             const SizedBox(width: 10),
             Expanded(

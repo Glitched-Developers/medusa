@@ -9,10 +9,8 @@ import '../services/device_info_service.dart';
 /// Каждое обращение сохраняется на телефоне вместе с моделью устройства,
 /// версией Android и меткой сборки — по ним видно, где именно не сложилось.
 class BugReportsController extends ChangeNotifier {
-  BugReportsController(
-    this._service, {
-    DeviceInfoService? deviceInfo,
-  }) : _deviceInfo = deviceInfo ?? DeviceInfoService() {
+  BugReportsController(this._service, {DeviceInfoService? deviceInfo})
+    : _deviceInfo = deviceInfo ?? DeviceInfoService() {
     _load();
   }
 
@@ -39,6 +37,7 @@ class BugReportsController extends ChangeNotifier {
     required ReportKind kind,
     required String text,
     String screen = '',
+    String? screenshotPath,
   }) async {
     final device = await _deviceInfo.collect(screen: screen);
     final report = BugReport(
@@ -47,6 +46,7 @@ class BugReportsController extends ChangeNotifier {
       text: text.trim(),
       createdAt: DateTime.now(),
       device: device,
+      screenshotPath: screenshotPath,
     );
     _reports = <BugReport>[report, ..._reports];
     await _service.save(_reports);
@@ -56,9 +56,13 @@ class BugReportsController extends ChangeNotifier {
 
   /// Пользователь отправил обращение — помечаем, чтобы это было видно.
   Future<void> markSent(String id) async {
-    _reports = _reports
-        .map((report) => report.id == id ? report.copyWith(sent: true) : report)
-        .toList();
+    _reports =
+        _reports
+            .map(
+              (report) =>
+                  report.id == id ? report.copyWith(sent: true) : report,
+            )
+            .toList();
     await _service.save(_reports);
     notifyListeners();
   }

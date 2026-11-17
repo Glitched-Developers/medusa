@@ -51,3 +51,6 @@ app.*.map.json
 .flutter
 .sudo_as_admin_successful
 .gitconfig
+
+# Служебные файлы Flutter CLI (телеметрия, сессии)
+.dart-tool/

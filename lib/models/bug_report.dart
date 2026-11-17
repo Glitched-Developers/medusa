@@ -31,20 +31,20 @@ class DeviceInfo {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'model': model,
-        'manufacturer': manufacturer,
-        'android': android,
-        'appBuild': appBuild,
-        'screen': screen,
-      };
+    'model': model,
+    'manufacturer': manufacturer,
+    'android': android,
+    'appBuild': appBuild,
+    'screen': screen,
+  };
 
   factory DeviceInfo.fromJson(Map<String, dynamic> json) => DeviceInfo(
-        model: '${json['model'] ?? ''}',
-        manufacturer: '${json['manufacturer'] ?? ''}',
-        android: '${json['android'] ?? ''}',
-        appBuild: '${json['appBuild'] ?? ''}',
-        screen: '${json['screen'] ?? ''}',
-      );
+    model: '${json['model'] ?? ''}',
+    manufacturer: '${json['manufacturer'] ?? ''}',
+    android: '${json['android'] ?? ''}',
+    appBuild: '${json['appBuild'] ?? ''}',
+    screen: '${json['screen'] ?? ''}',
+  );
 
   static const DeviceInfo unknown = DeviceInfo(
     model: 'неизвестно',
@@ -79,6 +79,7 @@ class BugReport {
     required this.createdAt,
     required this.device,
     this.sent = false,
+    this.screenshotPath,
   });
 
   final String id;
@@ -87,22 +88,28 @@ class BugReport {
   final DateTime createdAt;
   final DeviceInfo device;
 
+  /// Путь к скриншоту, который пользователь приложил к обращению.
+  /// Файл живёт в кеше приложения — при отправке он уходит вместе с текстом.
+  final String? screenshotPath;
+
   /// Пользователь отправил обращение (скопировал/поделился).
   final bool sent;
 
-  BugReport copyWith({bool? sent}) => BugReport(
-        id: id,
-        kind: kind,
-        text: text,
-        createdAt: createdAt,
-        device: device,
-        sent: sent ?? this.sent,
-      );
+  BugReport copyWith({bool? sent, String? screenshotPath}) => BugReport(
+    id: id,
+    kind: kind,
+    text: text,
+    createdAt: createdAt,
+    device: device,
+    sent: sent ?? this.sent,
+    screenshotPath: screenshotPath ?? this.screenshotPath,
+  );
 
   /// Текст для «Поделиться» / буфера обмена.
   String asMessage() {
     String two(int v) => v.toString().padLeft(2, '0');
-    final at = '${two(createdAt.day)}.${two(createdAt.month)}.'
+    final at =
+        '${two(createdAt.day)}.${two(createdAt.month)}.'
         '${createdAt.year} ${two(createdAt.hour)}:${two(createdAt.minute)}';
     return 'Медузка — ${kind.label}\n'
         'Дата: $at\n'
@@ -111,24 +118,31 @@ class BugReport {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'kind': kind.storageName,
-        'text': text,
-        'createdAt': createdAt.toIso8601String(),
-        'device': device.toJson(),
-        'sent': sent,
-      };
+    'id': id,
+    'kind': kind.storageName,
+    'text': text,
+    'createdAt': createdAt.toIso8601String(),
+    'device': device.toJson(),
+    'sent': sent,
+    if (screenshotPath != null) 'screenshotPath': screenshotPath,
+  };
 
   factory BugReport.fromJson(Map<String, dynamic> json) => BugReport(
-        id: '${json['id'] ?? ''}',
-        kind: ReportKind.fromName('${json['kind'] ?? 'bug'}'),
-        text: '${json['text'] ?? ''}',
-        createdAt:
-            DateTime.tryParse('${json['createdAt'] ?? ''}') ?? DateTime.now(),
-        device: json['device'] is Map
+    id: '${json['id'] ?? ''}',
+    kind: ReportKind.fromName('${json['kind'] ?? 'bug'}'),
+    text: '${json['text'] ?? ''}',
+    createdAt:
+        DateTime.tryParse('${json['createdAt'] ?? ''}') ?? DateTime.now(),
+    device:
+        json['device'] is Map
             ? DeviceInfo.fromJson(
-                Map<String, dynamic>.from(json['device'] as Map))
+              Map<String, dynamic>.from(json['device'] as Map),
+            )
             : DeviceInfo.unknown,
-        sent: json['sent'] == true,
-      );
+    sent: json['sent'] == true,
+    screenshotPath:
+        (json['screenshotPath'] as String?)?.trim().isEmpty ?? true
+            ? null
+            : (json['screenshotPath'] as String).trim(),
+  );
 }

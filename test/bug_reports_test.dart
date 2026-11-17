@@ -10,12 +10,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _FakeDeviceInfo extends DeviceInfoService {
   @override
   Future<DeviceInfo> collect({String screen = ''}) async => DeviceInfo(
-        model: 'Pixel 7',
-        manufacturer: 'Google',
-        android: '14 (SDK 34)',
-        appBuild: '20.10-test',
-        screen: screen,
-      );
+    model: 'Pixel 7',
+    manufacturer: 'Google',
+    android: '14 (SDK 34)',
+    appBuild: '20.10-test',
+    screen: screen,
+  );
 }
 
 Future<BugReportsController> _controller() async {
@@ -55,6 +55,22 @@ void main() {
       expect(report.device.summary, contains('сборка 20.10-test'));
     });
 
+    test('скриншот сохраняется вместе с обращением', () async {
+      final controller = await _controller();
+      final report = await controller.submit(
+        kind: ReportKind.bug,
+        text: 'Кнопка уехала за экран',
+        screenshotPath: '/tmp/shot.png',
+      );
+
+      expect(report.screenshotPath, '/tmp/shot.png');
+      // В текст сообщения путь не попадает — только сам файл при отправке.
+      expect(report.asMessage(), isNot(contains('/tmp/shot.png')));
+
+      final again = await _controller();
+      expect(again.reports.first.screenshotPath, '/tmp/shot.png');
+    });
+
     test('сообщение для отправки содержит текст и устройство', () async {
       final controller = await _controller();
       final report = await controller.submit(
@@ -81,8 +97,10 @@ void main() {
       final controller = await _controller();
       final old = await controller.submit(kind: ReportKind.bug, text: 'Первое');
       await Future<void>.delayed(const Duration(milliseconds: 2));
-      final fresh =
-          await controller.submit(kind: ReportKind.idea, text: 'Второе');
+      final fresh = await controller.submit(
+        kind: ReportKind.idea,
+        text: 'Второе',
+      );
 
       expect(controller.reports.first.id, fresh.id);
       expect(controller.reports.last.id, old.id);
@@ -93,8 +111,10 @@ void main() {
 
     test('удаление убирает обращение из хранилища', () async {
       final controller = await _controller();
-      final report =
-          await controller.submit(kind: ReportKind.bug, text: 'Удалить меня');
+      final report = await controller.submit(
+        kind: ReportKind.bug,
+        text: 'Удалить меня',
+      );
       await controller.remove(report.id);
 
       expect(controller.reports, isEmpty);

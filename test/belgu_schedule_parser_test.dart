@@ -29,16 +29,32 @@ void main() {
       expect(firstDay, isNotEmpty);
 
       final lesson = firstDay.first as Map<String, dynamic>;
-      expect(lesson.keys, containsAll(['number', 'time', 'type', 'name',
-        'teacher', 'auditory', 'online', 'key']));
+      expect(
+        lesson.keys,
+        containsAll([
+          'number',
+          'time',
+          'type',
+          'name',
+          'teacher',
+          'auditory',
+          'online',
+          'key',
+        ]),
+      );
       expect(lesson['number'], greaterThan(0));
-      expect(lesson['time'], matches(RegExp(r'^\d{1,2}:\d{2} - \d{1,2}:\d{2}$')));
+      expect(
+        lesson['time'],
+        matches(RegExp(r'^\d{1,2}:\d{2} - \d{1,2}:\d{2}$')),
+      );
       expect(lesson['name'], isNotEmpty);
     });
 
     test('понедельник: первая пара — лабораторная по CASE-средствам', () {
       final schedule = parsed['schedule'] as Map<String, dynamic>;
-      final mondayKey = schedule.keys.firstWhere((k) => k.contains('Понедельник'));
+      final mondayKey = schedule.keys.firstWhere(
+        (k) => k.contains('Понедельник'),
+      );
       final lessons = schedule[mondayKey] as List;
       final first = lessons.first as Map<String, dynamic>;
 
@@ -53,36 +69,57 @@ void main() {
 
     test('у пары разбирается ID преподавателя из ссылки', () {
       final schedule = parsed['schedule'] as Map<String, dynamic>;
-      final mondayKey = schedule.keys.firstWhere((k) => k.contains('Понедельник'));
+      final mondayKey = schedule.keys.firstWhere(
+        (k) => k.contains('Понедельник'),
+      );
       final first = (schedule[mondayKey] as List).first as Map<String, dynamic>;
 
       expect(first['teacherId'], isA<int>());
       expect(first['teacherId'], greaterThan(0));
     });
 
+    test('у пары разбирается ID аудитории из ссылки', () {
+      final schedule = parsed['schedule'] as Map<String, dynamic>;
+      final mondayKey = schedule.keys.firstWhere(
+        (k) => k.contains('Понедельник'),
+      );
+      final first = (schedule[mondayKey] as List).first as Map<String, dynamic>;
+
+      // В ссылке сайта: ../auditories/index.php?auditory=7236
+      expect(first['auditoryId'], 7236);
+    });
+
     test('у пары сохраняется ссылка на курс Pegasus', () {
       final schedule = parsed['schedule'] as Map<String, dynamic>;
-      final mondayKey = schedule.keys.firstWhere((k) => k.contains('Понедельник'));
+      final mondayKey = schedule.keys.firstWhere(
+        (k) => k.contains('Понедельник'),
+      );
       final first = (schedule[mondayKey] as List).first as Map<String, dynamic>;
 
       // На сайте название пары — ссылка на курс, её и открываем по тапу.
       expect(first['url'], isA<String>());
-      expect(first['url'], startsWith('https://pegas.bsuedu.ru/course/view.php'));
+      expect(
+        first['url'],
+        startsWith('https://pegas.bsuedu.ru/course/view.php'),
+      );
     });
 
     test('пары отсортированы по номеру внутри дня', () {
       final schedule = parsed['schedule'] as Map<String, dynamic>;
       for (final day in schedule.values.cast<List>()) {
-        final numbers = day
-            .map((l) => (l as Map<String, dynamic>)['number'] as int)
-            .toList();
+        final numbers =
+            day
+                .map((l) => (l as Map<String, dynamic>)['number'] as int)
+                .toList();
         expect(numbers, List<int>.from(numbers)..sort());
       }
     });
 
     test('неделя содержит 5 пар в понедельник (по данным сайта)', () {
       final schedule = parsed['schedule'] as Map<String, dynamic>;
-      final mondayKey = schedule.keys.firstWhere((k) => k.contains('Понедельник'));
+      final mondayKey = schedule.keys.firstWhere(
+        (k) => k.contains('Понедельник'),
+      );
       final lessons = schedule[mondayKey] as List;
       expect(lessons.length, 5);
     });
@@ -93,8 +130,10 @@ void main() {
     });
 
     test('пустая строка -> FormatException', () {
-      expect(() => BelguScheduleParser.parse(''),
-          throwsA(isA<FormatException>()));
+      expect(
+        () => BelguScheduleParser.parse(''),
+        throwsA(isA<FormatException>()),
+      );
     });
 
     test('HTML без таблицы расписания -> FormatException', () {

@@ -1,3 +1,4 @@
+import '../utils/text_normalize.dart';
 import 'user_badge.dart';
 import 'user_rating.dart';
 
@@ -49,8 +50,7 @@ class Persona {
   String get roleLabel => isTeacher ? 'Преподаватель' : 'Студент';
 
   /// Стабильный id по имени: имя — единственное, что у нас есть.
-  static String idFor(String name) =>
-      name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  static String idFor(String name) => normalizeSpaces(name).toLowerCase();
 
   Persona copyWith({
     String? name,
@@ -75,30 +75,30 @@ class Persona {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'name': name,
-        'role': role,
-        'avatar': avatar,
-        'about': about,
-        'points': points,
-        'group': group,
-        'badgeIds': badgeIds,
-        'isDemo': isDemo,
-      };
+    'id': id,
+    'name': name,
+    'role': role,
+    'avatar': avatar,
+    'about': about,
+    'points': points,
+    'group': group,
+    'badgeIds': badgeIds,
+    'isDemo': isDemo,
+  };
 
   factory Persona.fromJson(Map<String, dynamic> json) => Persona(
-        id: '${json['id'] ?? ''}',
-        name: '${json['name'] ?? ''}',
-        role: '${json['role'] ?? 'student'}',
-        avatar: '${json['avatar'] ?? '🎓'}',
-        about: '${json['about'] ?? ''}',
-        points: (json['points'] as num?)?.toInt() ?? 0,
-        group: '${json['group'] ?? ''}',
-        badgeIds: (json['badgeIds'] as List? ?? const <dynamic>[])
-            .map((item) => '$item')
-            .toList(growable: false),
-        isDemo: json['isDemo'] == true,
-      );
+    id: '${json['id'] ?? ''}',
+    name: '${json['name'] ?? ''}',
+    role: '${json['role'] ?? 'student'}',
+    avatar: '${json['avatar'] ?? '🎓'}',
+    about: '${json['about'] ?? ''}',
+    points: (json['points'] as num?)?.toInt() ?? 0,
+    group: '${json['group'] ?? ''}',
+    badgeIds: (json['badgeIds'] as List? ?? const <dynamic>[])
+        .map((item) => '$item')
+        .toList(growable: false),
+    isDemo: json['isDemo'] == true,
+  );
 }
 
 /// Кто есть в приложении: преподаватели и студенты, с которыми можно
@@ -179,12 +179,7 @@ class PersonaCatalog {
     for (final persona in demo) {
       if (persona.id == id) return persona;
     }
-    return Persona(
-      id: id,
-      name: name.trim(),
-      role: 'student',
-      avatar: '🎓',
-    );
+    return Persona(id: id, name: name.trim(), role: 'student', avatar: '🎓');
   }
 
   static Persona? byId(String id) {

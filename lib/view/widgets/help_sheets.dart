@@ -5,7 +5,7 @@ import '../../controllers/help_controller.dart';
 import '../../models/help_request.dart';
 import '../../models/persona.dart';
 import '../../themes/bsu_theme.dart';
-import '../../utils/help_helpers.dart';
+import '../../utils/help_format.dart';
 import '../../utils/profanity_filter.dart';
 import '../screens/public_profile_screen.dart';
 import '../transitions/fade_up_page_route.dart';

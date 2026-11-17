@@ -5,6 +5,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
 import '../models/news_item.dart';
+import '../utils/text_normalize.dart';
 
 /// Новости с сайта НИУ «БелГУ».
 ///
@@ -28,9 +29,9 @@ class NewsService {
 
   /// Лента новостей. [page] начинается с единицы.
   Future<List<NewsItem>> fetchNews({int page = 1}) async {
-    final uri = Uri.parse('$site$_listPath').replace(
-      queryParameters: <String, String>{'PAGEN_1': '$page'},
-    );
+    final uri = Uri.parse(
+      '$site$_listPath',
+    ).replace(queryParameters: <String, String>{'PAGEN_1': '$page'});
     final response = await _client
         .get(uri, headers: _headers)
         .timeout(const Duration(seconds: 20));
@@ -55,22 +56,24 @@ class NewsService {
       final url = _absolute(href);
       final dateText =
           element.querySelector('.archive_displ_date')?.text.trim() ?? '';
-      final summaryBlocks =
-          element.querySelectorAll('span.archive_detail_text');
+      final summaryBlocks = element.querySelectorAll(
+        'span.archive_detail_text',
+      );
       // Первый блок — заголовок, последний — анонс.
-      final summary = summaryBlocks.isEmpty
-          ? ''
-          : _clean(summaryBlocks.last.text);
+      final summary =
+          summaryBlocks.isEmpty ? '' : _clean(summaryBlocks.last.text);
       final image = element.querySelector('img.img')?.attributes['src'];
 
-      items.add(NewsItem(
-        id: url,
-        title: title,
-        summary: summary == title ? '' : summary,
-        url: url,
-        imageUrl: image == null ? '' : _absolute(image),
-        date: _parseDate(dateText),
-      ));
+      items.add(
+        NewsItem(
+          id: url,
+          title: title,
+          summary: summary == title ? '' : summary,
+          url: url,
+          imageUrl: image == null ? '' : _absolute(image),
+          date: _parseDate(dateText),
+        ),
+      );
     }
     return items;
   }
@@ -90,7 +93,8 @@ class NewsService {
   NewsArticle parseArticle(String html, [String url = '']) {
     final doc = html_parser.parse(html);
     final title = _clean(doc.querySelector('h1')?.text ?? '');
-    final body = doc.querySelector('.news_text_dlya_lentaev') ??
+    final body =
+        doc.querySelector('.news_text_dlya_lentaev') ??
         doc.querySelector('.news-detail');
     final dateText =
         doc.querySelector('.post_top_info .date')?.text.trim() ?? '';
@@ -148,10 +152,7 @@ class NewsService {
     return DateTime(year, month, day);
   }
 
-  static String _clean(String text) => text
-      .replaceAll('\u00a0', ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  static String _clean(String text) => normalizeSpaces(text);
 
   void dispose() => _client.close();
 }

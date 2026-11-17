@@ -6,6 +6,10 @@ class Lesson {
   final String teacher;
   final int? teacherId;
   final String auditory;
+
+  /// ID аудитории с сайта (`auditory=7236`), если он был в ссылке.
+  /// Позволяет открыть расписание кабинета без поиска по названию.
+  final int? auditoryId;
   final bool online;
   final String key;
   final int? subgroup;
@@ -22,6 +26,7 @@ class Lesson {
     required this.teacher,
     this.teacherId,
     required this.auditory,
+    this.auditoryId,
     required this.online,
     required this.key,
     this.subgroup,
@@ -37,12 +42,14 @@ class Lesson {
       teacher: json['teacher'] as String? ?? '',
       teacherId: json['teacherId'] as int?,
       auditory: json['auditory'] as String? ?? '',
+      auditoryId: json['auditoryId'] as int?,
       online: json['online'] as bool? ?? false,
       key: json['key'] as String? ?? '${json['number'] ?? 0}_key',
       subgroup: json['subgroup'] as int?,
-      url: (json['url'] as String?)?.trim().isEmpty ?? true
-          ? null
-          : (json['url'] as String).trim(),
+      url:
+          (json['url'] as String?)?.trim().isEmpty ?? true
+              ? null
+              : (json['url'] as String).trim(),
     );
   }
 
@@ -56,6 +63,7 @@ class Lesson {
       'teacher': teacher,
       if (teacherId != null) 'teacherId': teacherId,
       'auditory': auditory,
+      if (auditoryId != null) 'auditoryId': auditoryId,
       'online': online,
       'key': key,
       if (subgroup != null) 'subgroup': subgroup,

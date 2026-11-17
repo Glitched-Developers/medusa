@@ -1,6 +1,8 @@
 import 'package:html/dom.dart';
 import 'package:html/parser.dart' as html_parser;
 
+import '../utils/text_normalize.dart';
+
 /// Разбор HTML-фрагмента расписания с сайта bsuedu.ru.
 ///
 /// Сайт отдаёт таблицу вида:
@@ -65,10 +67,12 @@ class BelguScheduleParser {
 
       // Тип пары — маленький <small> в первой ячейке (лек./лаб./практ.)
       final type = _normalize(
-          lessonCells.first.querySelector('small')?.text ?? '');
+        lessonCells.first.querySelector('small')?.text ?? '',
+      );
 
       // Название — вторая ячейка: сначала <a>, иначе весь текст без подгруппы
-      final nameCell = lessonCells.length > 1 ? lessonCells[1] : lessonCells.first;
+      final nameCell =
+          lessonCells.length > 1 ? lessonCells[1] : lessonCells.first;
       final name = _lessonName(nameCell);
       final subgroup = _subgroup(nameCell.text);
       // Название на сайте — ссылка на курс в Pegasus. Запоминаем её,
@@ -78,15 +82,18 @@ class BelguScheduleParser {
       // Преподаватель и аудитория — ссылки; в ссылке на расписание
       // преподавателя есть его ID: teachers/index.php?teacher=107180
       final teacherCell = row.querySelector("td[id='teacher']");
-      final teacher =
-          _normalize(teacherCell?.querySelector('a')?.text ?? '');
+      final teacher = _normalize(teacherCell?.querySelector('a')?.text ?? '');
       final teacherId = _teacherId(teacherCell);
 
       final audCell = row.querySelector("td[id='aud']");
       final auditory = _auditory(audCell);
+      // ID аудитории уже есть в ссылке — не нужно искать кабинет по названию
+      // в общем списке, расписание откроется сразу и даже офлайн.
+      final auditoryId = _auditoryId(audCell);
 
       final rowText = row.text.toLowerCase();
-      final online = rowText.contains('онлайн') || rowText.contains('дистанцион');
+      final online =
+          rowText.contains('онлайн') || rowText.contains('дистанцион');
 
       final day = schedule[currentDay]!;
       final key = '${day.length}_${lastNumber}_${name}_$subgroup';
@@ -100,6 +107,7 @@ class BelguScheduleParser {
         'teacher': teacher,
         if (teacherId != null) 'teacherId': teacherId,
         'auditory': auditory,
+        if (auditoryId != null) 'auditoryId': auditoryId,
         'online': online,
         'key': key,
         if (subgroup != null) 'subgroup': subgroup,
@@ -143,8 +151,7 @@ class BelguScheduleParser {
 
   /// "п/г 1 подгруппа" -> 1; иначе null.
   static int? _subgroup(String cellText) {
-    final match =
-        RegExp(r'(\d)\s*подгрупп').firstMatch(cellText.toLowerCase());
+    final match = RegExp(r'(\d)\s*подгрупп').firstMatch(cellText.toLowerCase());
     return match == null ? null : int.tryParse(match.group(1)!);
   }
 
@@ -164,6 +171,13 @@ class BelguScheduleParser {
     return match == null ? null : int.tryParse(match.group(1)!);
   }
 
+  /// ID аудитории из ссылки вида ../auditories/index.php?auditory=7236
+  static int? _auditoryId(Element? cell) {
+    final href = cell?.querySelector('a')?.attributes['href'] ?? '';
+    final match = RegExp(r'auditory=(\d+)').firstMatch(href);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
   /// "ауд. 6-12, Учебный корпус №15" -> "6-12 (Учебный корпус №15)"
   static String _auditory(Element? cell) {
     if (cell == null) return '';
@@ -179,8 +193,7 @@ class BelguScheduleParser {
         : link;
   }
 
-  static String _normalize(String value) =>
-      value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  static String _normalize(String value) => normalizeSpaces(value);
 
   static String _firstDigits(String value) {
     final match = RegExp(r'\d+').firstMatch(value);

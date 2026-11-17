@@ -5,7 +5,7 @@ import '../../controllers/help_controller.dart';
 import '../../models/help_request.dart';
 import '../../models/persona.dart';
 import '../../themes/bsu_theme.dart';
-import '../../utils/help_helpers.dart';
+import '../../utils/help_format.dart';
 import '../transitions/fade_up_page_route.dart';
 import '../widgets/help_sheets.dart';
 import '../widgets/help_status_chip.dart';

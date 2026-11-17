@@ -56,8 +56,9 @@ class LessonTile extends StatelessWidget {
   /// сам, нам достаточно перейти по встроенной ссылке.
   Widget _title(BuildContext context) {
     final theme = Theme.of(context);
-    final style = theme.textTheme.titleSmall
-        ?.copyWith(fontWeight: FontWeight.w600);
+    final style = theme.textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
     final url = lesson.url;
     if (url == null) return Text(lesson.name, style: style);
 
@@ -101,14 +102,12 @@ class LessonTile extends StatelessWidget {
 
   /// "8:30 - 10:05" -> (510, 605) — минуты от полуночи; null, если не разобрано.
   static (int, int)? timeRange(String time) {
-    final m = RegExp(r'(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})')
-        .firstMatch(time);
+    final m = RegExp(
+      r'(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})',
+    ).firstMatch(time);
     if (m == null) return null;
     int toMin(String h, String min) => int.parse(h) * 60 + int.parse(min);
-    return (
-      toMin(m.group(1)!, m.group(2)!),
-      toMin(m.group(3)!, m.group(4)!),
-    );
+    return (toMin(m.group(1)!, m.group(2)!), toMin(m.group(3)!, m.group(4)!));
   }
 
   /// Индекс аудиторий, если он подключён в дереве провайдеров.
@@ -128,18 +127,21 @@ class LessonTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Кабинет из расписания («6-12») -> аудитория сайта с её id.
-    // Индекс аудиторий может быть не подключён (например, в тестах) —
-    // без него карточка пары работает как раньше.
+    // ID обычно уже есть в ссылке пары; поиск по названию — запасной путь,
+    // если индекс аудиторий не подключён (например, в тестах).
     // В расписании кабинета это не кабинет, а группа — не резолвим.
-    final room = lesson.auditory.isEmpty || inAuditorium
-        ? null
-        : _roomIndex(context)?.resolve(lesson.auditory);
+    final room =
+        lesson.auditory.isEmpty || inAuditorium || lesson.auditoryId != null
+            ? null
+            : _roomIndex(context)?.resolve(lesson.auditory);
+    final auditoriumId =
+        inAuditorium ? null : (lesson.auditoryId?.toString() ?? room?.id);
+    final auditoriumName = room?.name ?? lesson.auditory;
 
     // Состояние пары для сегодняшнего дня
     final range = timeRange(lesson.time);
     final nowMin = DateTime.now().hour * 60 + DateTime.now().minute;
-    final passed =
-        isToday && range != null && nowMin > range.$2;
+    final passed = isToday && range != null && nowMin > range.$2;
     final ongoing =
         isToday && range != null && nowMin >= range.$1 && nowMin <= range.$2;
     // Сегодняшние непрошедшие пары — подсвечиваем фоном
@@ -149,9 +151,10 @@ class LessonTile extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: highlight
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.65)
-          : theme.colorScheme.surfaceContainerLow,
+      color:
+          highlight
+              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.65)
+              : theme.colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -197,23 +200,27 @@ class LessonTile extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: typeColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: typeColor.withValues(alpha: 0.5)),
+                            color: typeColor.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: Text(
                           typeLabel,
-                          style:
-                              TextStyle(fontSize: 12, color: typeColor),
+                          style: TextStyle(fontSize: 12, color: typeColor),
                         ),
                       ),
                       if (ongoing)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: BsuColors.green,
                             borderRadius: BorderRadius.circular(20),
@@ -221,23 +228,30 @@ class LessonTile extends StatelessWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.play_arrow,
-                                  size: 14, color: Colors.white),
+                              Icon(
+                                Icons.play_arrow,
+                                size: 14,
+                                color: Colors.white,
+                              ),
                               SizedBox(width: 2),
-                              Text('Идёт сейчас',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white)),
+                              Text(
+                                'Идёт сейчас',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       if (lesson.subgroup != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color:
-                                theme.colorScheme.surfaceContainerHighest,
+                            color: theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -248,7 +262,9 @@ class LessonTile extends StatelessWidget {
                       if (lesson.online)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.blue.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -256,13 +272,15 @@ class LessonTile extends StatelessWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.wifi,
-                                  size: 12, color: Colors.blue),
+                              Icon(Icons.wifi, size: 12, color: Colors.blue),
                               SizedBox(width: 4),
-                              Text('Онлайн',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blue)),
+                              Text(
+                                'Онлайн',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -274,8 +292,9 @@ class LessonTile extends StatelessWidget {
                       icon: Icons.person_outline,
                       text: lesson.teacher,
                       // Тап по ФИО — расписание преподавателя (все его пары)
-                      onTap: lesson.teacherId != null
-                          ? () => Navigator.push(
+                      onTap:
+                          lesson.teacherId != null
+                              ? () => Navigator.push(
                                 context,
                                 FadeUpPageRoute(
                                   page: TeacherScheduleScreen(
@@ -284,25 +303,28 @@ class LessonTile extends StatelessWidget {
                                   ),
                                 ),
                               )
-                          : null,
+                              : null,
                     ),
                   if (lesson.auditory.isNotEmpty)
                     _InfoRow(
-                      icon: inAuditorium
-                          ? Icons.groups_outlined
-                          : Icons.place_outlined,
-                      text: inAuditorium
-                          ? 'Группа ${lesson.auditory}'
-                          : lesson.auditory,
+                      icon:
+                          inAuditorium
+                              ? Icons.groups_outlined
+                              : Icons.place_outlined,
+                      text:
+                          inAuditorium
+                              ? 'Группа ${lesson.auditory}'
+                              : lesson.auditory,
                       // Тап по кабинету — расписание этой аудитории.
-                      onTap: room == null
-                          ? null
-                          : () => Navigator.push(
+                      onTap:
+                          auditoriumId == null
+                              ? null
+                              : () => Navigator.push(
                                 context,
                                 FadeUpPageRoute(
                                   page: AuditoriumScheduleScreen(
-                                    auditoriumId: room.id,
-                                    auditoriumName: room.name,
+                                    auditoriumId: auditoriumId,
+                                    auditoriumName: auditoriumName,
                                   ),
                                 ),
                               ),

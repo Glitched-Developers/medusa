@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -26,6 +27,7 @@ class AuditoriumIndexService extends ChangeNotifier {
   List<Auditorium> _items = const <Auditorium>[];
   Future<void>? _loading;
   DateTime? _lastFailedAt;
+  int _failedAttempts = 0;
 
   /// Все известные аудитории (отсортированы по названию).
   List<Auditorium> get items => _items;
@@ -38,12 +40,15 @@ class AuditoriumIndexService extends ChangeNotifier {
       final cached = await _storage.getString(_itemsKey);
       if (cached != null) {
         try {
-          _items = (jsonDecode(cached) as List)
-              .whereType<Map>()
-              .map((item) =>
-                  Auditorium.fromJson(Map<String, dynamic>.from(item)))
-              .where((aud) => aud.id.isNotEmpty && aud.name.isNotEmpty)
-              .toList();
+          _items =
+              (jsonDecode(cached) as List)
+                  .whereType<Map>()
+                  .map(
+                    (item) =>
+                        Auditorium.fromJson(Map<String, dynamic>.from(item)),
+                  )
+                  .where((aud) => aud.id.isNotEmpty && aud.name.isNotEmpty)
+                  .toList();
           if (_items.isNotEmpty) notifyListeners();
         } catch (_) {
           _items = const <Auditorium>[];
@@ -52,8 +57,8 @@ class AuditoriumIndexService extends ChangeNotifier {
     }
 
     final updated = await _storage.getInt(_updatedKey) ?? 0;
-    final fresh = DateTime.now().millisecondsSinceEpoch - updated <
-        _ttl.inMilliseconds;
+    final fresh =
+        DateTime.now().millisecondsSinceEpoch - updated < _ttl.inMilliseconds;
     if (_items.isNotEmpty && fresh) return;
 
     // Сеть только что не ответила — не долбим сайт на каждый запрос.
@@ -62,11 +67,20 @@ class AuditoriumIndexService extends ChangeNotifier {
     await refresh();
   }
 
-  /// Недавняя неудачная попытка: повторяем не чаще раза в 30 секунд.
+  /// Недавняя неудачная попытка: пауза растёт 5 с → 10 с → 20 с… до 5 минут,
+  /// чтобы не долбить сайт, когда он лежит.
   bool get _failedRecently {
     final at = _lastFailedAt;
-    return at != null &&
-        DateTime.now().difference(at) < const Duration(seconds: 30);
+    if (at == null) return false;
+    return DateTime.now().difference(at) < _retryAfter;
+  }
+
+  Duration get _retryAfter {
+    const base = Duration(seconds: 5);
+    const cap = Duration(minutes: 5);
+    var delay = base * math.pow(2, _failedAttempts.clamp(0, 6)).toInt();
+    if (delay > cap) delay = cap;
+    return delay;
   }
 
   /// Принудительно обновить список с сайта.
@@ -79,6 +93,7 @@ class AuditoriumIndexService extends ChangeNotifier {
       final items = await _api.fetchAllAuditoriums();
       _items = items;
       _lastFailedAt = null;
+      _failedAttempts = 0;
       debugPrint('Auditoriums loaded: ${items.length}');
       await _storage.setString(
         _itemsKey,
@@ -88,6 +103,7 @@ class AuditoriumIndexService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _lastFailedAt = DateTime.now();
+      _failedAttempts++;
       debugPrint('Не удалось обновить список аудиторий: $e');
     }
   }

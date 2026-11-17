@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/help_request.dart';
-import '../../utils/help_helpers.dart';
+import '../../utils/help_format.dart';
 
 /// Компактная плашка со статусом студента: «Уже в пути», «Приду через
 /// пять минут», «Я на месте» или свой текст.

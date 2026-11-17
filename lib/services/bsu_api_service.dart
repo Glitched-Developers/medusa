@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/auditorium.dart';
 import '../utils/group_format.dart';
+import '../utils/text_normalize.dart';
 import 'belgu_schedule_parser.dart';
 
 enum WeekActions {
@@ -90,8 +91,9 @@ class BsuApiService {
 
       if (response.statusCode != 200) {
         throw ApiException(
-            'Расписание преподавателя: HTTP ${response.statusCode}',
-            response);
+          'Расписание преподавателя: HTTP ${response.statusCode}',
+          response,
+        );
       }
 
       final html = utf8.decode(response.bodyBytes);
@@ -123,7 +125,9 @@ class BsuApiService {
 
       if (response.statusCode != 200) {
         throw ApiException(
-            'Расписание аудитории: HTTP ${response.statusCode}', response);
+          'Расписание аудитории: HTTP ${response.statusCode}',
+          response,
+        );
       }
 
       final html = utf8.decode(response.bodyBytes);
@@ -176,10 +180,11 @@ class BsuApiService {
     if (found.isEmpty) {
       throw ApiException('Сайт не отдал список аудиторий');
     }
-    final list = found.entries
-        .map((entry) => Auditorium(id: entry.key, name: entry.value))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final list =
+        found.entries
+            .map((entry) => Auditorium(id: entry.key, name: entry.value))
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
     return list;
   }
 
@@ -209,11 +214,16 @@ class BsuApiService {
   /// Поиск групп по номеру/названию: возвращает пары [id, название].
   /// Используется для автоподсказок при вводе группы.
   Future<List<List<String>>> search(String query) async {
-    final url = Uri.parse('$baseUrl/search/search_json.php?query=${Uri.encodeQueryComponent(query)}');
+    final url = Uri.parse(
+      '$baseUrl/search/search_json.php?query=${Uri.encodeQueryComponent(query)}',
+    );
     try {
       final response = await _client.get(url);
       if (response.statusCode != 200) {
-        throw ApiException('Поиск групп: HTTP ${response.statusCode}', response);
+        throw ApiException(
+          'Поиск групп: HTTP ${response.statusCode}',
+          response,
+        );
       }
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as List;
       return data
@@ -296,10 +306,7 @@ class BsuApiService {
     final raw = await search(query);
     return raw.map((item) {
       final name = item.length > 1 ? item[1] : item.first;
-      return ScheduleSearchEntry(
-        name,
-        RegExp(r'^\d+$').hasMatch(name),
-      );
+      return ScheduleSearchEntry(name, RegExp(r'^\d+$').hasMatch(name));
     }).toList();
   }
 
@@ -309,8 +316,10 @@ class BsuApiService {
   /// результатов содержит ссылку `teachers/index.php?teacher=<id>`.
   /// Прямого JSON для этого у сайта нет — резолвим по HTML-ссылке.
   Future<int> resolveTeacherId(String fullName) async {
-    final url = Uri.parse('$baseUrl/search/index.php'
-        '?query=${Uri.encodeQueryComponent(fullName)}');
+    final url = Uri.parse(
+      '$baseUrl/search/index.php'
+      '?query=${Uri.encodeQueryComponent(fullName)}',
+    );
     try {
       final response = await _client.get(url);
       if (response.statusCode != 200) {
@@ -325,7 +334,7 @@ class BsuApiService {
       for (final m in pattern.allMatches(html)) {
         final id = m.group(1)!;
         firstId ??= id;
-        final text = m.group(2)!.replaceAll(RegExp(r'\s+'), ' ').trim();
+        final text = normalizeSpaces(m.group(2)!);
         if (text == fullName) return int.parse(id);
       }
       if (firstId != null) return int.parse(firstId);
@@ -336,7 +345,10 @@ class BsuApiService {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchSchedule(int group, String weekToken) async {
+  Future<Map<String, dynamic>> _fetchSchedule(
+    int group,
+    String weekToken,
+  ) async {
     final url = Uri.parse('$baseUrl/groups/show_schedule.php');
     try {
       final response = await _client.post(
@@ -349,8 +361,7 @@ class BsuApiService {
       );
 
       if (response.statusCode != 200) {
-        throw ApiException(
-            'Расписание: HTTP ${response.statusCode}', response);
+        throw ApiException('Расписание: HTTP ${response.statusCode}', response);
       }
 
       final html = utf8.decode(response.bodyBytes);
@@ -392,13 +403,15 @@ class BsuApiService {
       final response = await _client.get(url);
       if (response.statusCode != 200) {
         throw ApiException(
-            'Страница групп: HTTP ${response.statusCode}', response);
+          'Страница групп: HTTP ${response.statusCode}',
+          response,
+        );
       }
       final html = utf8.decode(response.bodyBytes);
       final match =
           RegExp(r"id='week'\s+name='(\d+)'").firstMatch(html) ??
-              RegExp(r'name="(\d+)"\s+id="week"').firstMatch(html) ??
-              RegExp(r"id='week'[^>]*name='(\d+)'").firstMatch(html);
+          RegExp(r'name="(\d+)"\s+id="week"').firstMatch(html) ??
+          RegExp(r"id='week'[^>]*name='(\d+)'").firstMatch(html);
       if (match == null) {
         throw ApiException('На сайте не найден токен текущей недели');
       }
@@ -413,10 +426,10 @@ class BsuApiService {
   (DateTime, DateTime)? _parseWeekToken(String token) {
     if (token.length < 16) return null;
     DateTime parseAt(int offset) => DateTime(
-          int.parse(token.substring(offset + 4, offset + 8)),
-          int.parse(token.substring(offset + 2, offset + 4)),
-          int.parse(token.substring(offset, offset + 2)),
-        );
+      int.parse(token.substring(offset + 4, offset + 8)),
+      int.parse(token.substring(offset + 2, offset + 4)),
+      int.parse(token.substring(offset, offset + 2)),
+    );
     return (parseAt(0), parseAt(8));
   }
 

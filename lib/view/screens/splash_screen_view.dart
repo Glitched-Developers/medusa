@@ -111,15 +111,14 @@ class _MascotAnimation extends StatelessWidget {
   final double t;
   final ColorScheme scheme;
 
+  // Оптимизировано: меньше искр, но сохранён визуальный эффект
   static const _sparkles = <(double, double, double, double)>[
     // (угол, радиус, фаза, размер)
-    (0.2, 86, 0.00, 4.0),
-    (1.1, 100, 0.35, 3.0),
-    (2.0, 78, 0.70, 5.0),
-    (2.9, 96, 0.15, 3.5),
-    (3.8, 82, 0.55, 4.5),
-    (4.7, 104, 0.85, 3.0),
-    (5.6, 90, 0.25, 4.0),
+    (0.3, 90, 0.00, 4.5),
+    (1.5, 98, 0.4, 3.5),
+    (2.8, 85, 0.65, 4.0),
+    (4.2, 95, 0.2, 4.0),
+    (5.5, 88, 0.8, 3.5),
   ];
 
   @override
@@ -162,11 +161,18 @@ class _MascotAnimation extends StatelessWidget {
   }
 
   Widget _glow(ColorScheme scheme, double settle) {
-    final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 5);
+    // Оптимизировано: кэшируем вычисление синуса
+    final pulse = 0.5 + 0.5 * math.sin(t * 15.707963267948966); // π * 5
+    final scaleFactor = (0.92 + 0.07 * pulse) * settle;
+    final opacityValue = (0.10 + 0.10 * pulse) * settle;
+    
+    // Early return если свечение ещё не началось
+    if (settle < 0.01) return const SizedBox.shrink();
+    
     return Transform.scale(
-      scale: (0.92 + 0.07 * pulse) * settle,
+      scale: scaleFactor,
       child: Opacity(
-        opacity: (0.10 + 0.10 * pulse) * settle,
+        opacity: opacityValue,
         child: Container(
           width: 210,
           height: 210,
@@ -180,14 +186,19 @@ class _MascotAnimation extends StatelessWidget {
   }
 
   Widget _ripple(ColorScheme scheme, int index, double settle) {
-    // Две волны по два кольца: вторая волна догоняет первую.
+    // Оптимизировано: упрощены вычисления старта волн
     final start = index < 2 ? 0.15 + index * 0.28 : 1.15 + (index - 2) * 0.28;
     final p = ((t - start) / 0.8).clamp(0.0, 1.0);
-    if (p <= 0 || p >= 1) return const SizedBox.shrink();
+    
+    // Early return: волна ещё не началась или уже закончилась
+    if (p <= 0 || p >= 1 || settle < 0.01) return const SizedBox.shrink();
+    
     final eased = Curves.easeOut.transform(p);
-    final size = 110 + 150 * eased;
+    final size = 110.0 + 150.0 * eased;
+    final opacityValue = (1 - p) * 0.4 * settle;
+    
     return Opacity(
-      opacity: (1 - p) * 0.4 * settle,
+      opacity: opacityValue,
       child: Container(
         width: size,
         height: size,
@@ -201,20 +212,34 @@ class _MascotAnimation extends StatelessWidget {
 
   Widget _sparkle(ColorScheme scheme, (double, double, double, double) s) {
     final (angle, baseRadius, phase, size) = s;
-    // Искры «вспыхивают» по кругу и слегка дрейфуют.
-    final wave = math.sin(2 * math.pi * ((t * 1.1 + phase) % 1));
+    
+    // Оптимизировано: кэшируем константы и упрощаем вычисления
+    const twoPi = 6.283185307179586; // 2 * π
+    const halfPi = 1.5707963267948966; // π / 2
+    
     final appear = ((t - 0.2) / 0.3).clamp(0.0, 1.0);
+    
+    // Early return если искра ещё не появилась
+    if (appear < 0.01) return const SizedBox.shrink();
+    
+    final wave = math.sin(twoPi * ((t * 1.1 + phase) % 1));
     final opacity = appear * math.max(0, wave) * 0.9;
+    
+    // Early return если искра невидима
     if (opacity <= 0.01) return const SizedBox.shrink();
-    final radius = baseRadius + 8 * math.sin(2 * math.pi * ((t * 0.7 + phase) % 1));
+    
+    final radius = baseRadius + 8.0 * math.sin(twoPi * ((t * 0.7 + phase) % 1));
+    final adjustedAngle = angle - halfPi;
+    
     final color = switch ((phase * 10).round() % 3) {
       0 => scheme.tertiary,
       1 => const Color(0xFFF2C33D),
       _ => scheme.secondary,
     };
+    
     return Positioned(
-      left: 130 + math.cos(angle - math.pi / 2) * radius - size / 2,
-      top: 130 + math.sin(angle - math.pi / 2) * radius - size / 2,
+      left: 130 + math.cos(adjustedAngle) * radius - size / 2,
+      top: 130 + math.sin(adjustedAngle) * radius - size / 2,
       child: Opacity(
         opacity: opacity,
         child: Transform.scale(

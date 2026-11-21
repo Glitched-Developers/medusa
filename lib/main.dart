@@ -44,13 +44,9 @@ void main() async {
   final favoritesService = FavoritesService();
   final profileService = ProfileService();
 
-  // Initialize in order
+  // Initialize only critical services synchronously
   await settingsService.init();
-  await cacheService.init();
-  await helpService.init();
-  await favoritesService.init();
-  await profileService.init();
-
+  
   // Create API service
   final apiService = BsuApiService(ApiConstants.apiServerUrl);
 
@@ -61,13 +57,21 @@ void main() async {
 
   // Оповещения: системные уведомления и их настройки.
   final notificationService = NotificationService();
-  try {
-    await notificationService.init();
-  } catch (e) {
-    debugPrint('Оповещения недоступны: $e');
-  }
   final notificationsSettings = NotificationsSettingsService();
-  await notificationsSettings.init();
+  
+  // Initialize remaining services in background after app starts
+  unawaited(Future.microtask(() async {
+    await cacheService.init();
+    await helpService.init();
+    await favoritesService.init();
+    await profileService.init();
+    try {
+      await notificationService.init();
+    } catch (e) {
+      debugPrint('Оповещения недоступны: $e');
+    }
+    await notificationsSettings.init();
+  }));
   final notificationsController = NotificationsController(
     notificationService,
     notificationsSettings,

@@ -1,5 +1,12 @@
 name: Build Flutter APKs & Appbundle
-on: push
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -8,28 +15,35 @@ jobs:
     strategy:
       matrix:
         target: [apks]
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up JDK 21
         if: matrix.target != 'documentation'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
-          java-version: '21.x'
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Install Flutter SDK
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.10'
           channel: 'stable'
+          cache: true
 
-      - name: Flutter pub get
+      - name: Get dependencies
         run: flutter pub get
 
       - name: Build APKs (Split by ABI)
         if: matrix.target == 'apks'
         run: flutter build apk --release --split-per-abi
+
+      - name: Build AppBundle
+        if: matrix.target == 'appbundle'
+        run: flutter build appbundle --release
 
       - name: Upload artifacts
         if: matrix.target == 'apks' || matrix.target == 'appbundle'
@@ -38,34 +52,37 @@ jobs:
           name: publish-artifacts-${{ matrix.target }}
           path: |
             build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: ignore
+            build/app/outputs/bundle/release/*.aab
+          if-no-files-found: error
           overwrite: true
 
   publish:
     name: Publish the binaries
     needs: build
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2 
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Get project version
         id: project_version
         uses: its404/get-flutter-version@v1.0.0
-        
-      - name: Download apks
+
+      - name: Download APKs
         uses: actions/download-artifact@v4
         with:
-          name: publish-artifacts-apks 
-          path: build/app/outputs/flutter-apk/
+          name: publish-artifacts-apks
+          path: artifacts/
 
-      - name: Display structure of downloaded apks
-        run: ls -R build/app/outputs/flutter-apk
+      - name: Display downloaded files
+        run: ls -la artifacts/
 
       - name: Release Binary
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "build/app/outputs/flutter-apk/flutter-apk/*.apk,build/app/outputs/bundle/release/bundle/release/*.aab"
+          artifacts: "artifacts/*.apk,artifacts/*.aab"
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: v${{ steps.project_version.outputs.version_number }}+${{steps.project_version.outputs.build_number}}-${{github.run_number}}
-          name: "Release ${{ steps.project_version.outputs.version_number }}+${{steps.project_version.outputs.build_number}}"
+          tag: v${{ steps.project_version.outputs.version_number }}+${{ steps.project_version.outputs.build_number }}-${{ github.run_number }}
+          name: "Release ${{ steps.project_version.outputs.version_number }}+${{ steps.project_version.outputs.build_number }}"
           generateReleaseNotes: true

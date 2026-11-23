@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [documentation, apks, appbundle]
+        target: [apks]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

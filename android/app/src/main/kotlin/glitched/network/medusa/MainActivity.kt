@@ -1,4 +1,4 @@
-package glitched.network.medusa
+package bsu.digital.lab.medusa
 
 import io.flutter.embedding.android.FlutterActivity
 
